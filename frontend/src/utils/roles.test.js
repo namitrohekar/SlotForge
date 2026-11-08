@@ -1,0 +1,51 @@
+import { describe, expect, it } from 'vitest'
+import { rolesFor, visibleNavigation } from '../routes/navigation.js'
+import { canAddRole, hasAnyRole, roleConflict, roleSummary } from './roles.js'
+
+const as = (...roles) => ({ roles })
+
+describe('roles', () => {
+  it('lets an administrator do what a coordinator can, but not review as a head of department', () => {
+    expect(hasAnyRole(as('ADMIN'), ['EXAM_COORDINATOR'])).toBe(true)
+    expect(hasAnyRole(as('ADMIN'), ['HOD'])).toBe(false)
+    expect(hasAnyRole(as('EXAM_COORDINATOR'), ['ADMIN'])).toBe(false)
+  })
+
+  it('treats a missing role list as open to every signed-in user, and nobody signed out', () => {
+    expect(hasAnyRole(as('STUDENT'), undefined)).toBe(true)
+    expect(hasAnyRole(null, ['STUDENT'])).toBe(false)
+  })
+
+  it('names roles in plain words', () => {
+    expect(roleSummary(['HOD', 'FACULTY'])).toBe('Head of department, Faculty')
+  })
+
+  it('shows System only to administrators', () => {
+    const labels = (user) => visibleNavigation(user).map(({ label }) => label)
+
+    expect(labels(as('ADMIN'))).toContain('System')
+    expect(labels(as('STUDENT'))).not.toContain('System')
+    expect(labels(as('STUDENT'))).toContain('Dashboard')
+    expect(rolesFor('/system')).toEqual(['ADMIN'])
+  })
+
+  it('gives a head of department faculty access without the Faculty role', () => {
+    expect(hasAnyRole(as('HOD'), ['FACULTY'])).toBe(true)
+    expect(hasAnyRole(as('FACULTY'), ['HOD'])).toBe(false)
+  })
+
+  it('refuses the same role combinations as the server', () => {
+    expect(roleConflict(['STUDENT', 'ADMIN'])).toMatch(/student/)
+    expect(roleConflict(['HOD', 'STUDENT'])).toMatch(/student/)
+    expect(roleConflict(['ADMIN', 'EXAM_COORDINATOR', 'HOD', 'FACULTY', 'INVIGILATOR', 'STUDENT'])).toBeDefined()
+    expect(roleConflict(['HOD', 'FACULTY'])).toBeDefined()
+    expect(roleConflict(['HOD', 'EXAM_COORDINATOR'])).toBeDefined()
+    expect(roleConflict(['EXAM_COORDINATOR', 'FACULTY'])).toBeUndefined()
+    expect(roleConflict(['ADMIN', 'INVIGILATOR'])).toBeUndefined()
+  })
+
+  it('lets a wrongly saved role be removed, but not a clashing one added', () => {
+    expect(canAddRole('STUDENT', ['HOD'])).toBe(false)
+    expect(canAddRole('STUDENT', ['HOD', 'STUDENT'])).toBe(true)
+  })
+})

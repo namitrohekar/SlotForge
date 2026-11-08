@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Local environment files hold secrets
+.env
+.env.*
+!.env.example
+
+# Browser test output
+test-results/
+playwright-report/
+
+# Generated knowledge graph
+graphify-out/
+
+# Local tooling and planning notes, not needed to run the project
+.claude/
+CLAUDE.md
+docs/

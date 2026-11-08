@@ -1,0 +1,115 @@
+/* Every design value lives here. Components use semantic names, never raw values. */
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --sf-canvas: #F5F5F7;
+  --sf-surface: #FFFFFF;
+  --sf-raised: #FFFFFF;
+  --sf-sunken: #EFEFF2;
+
+  --sf-ink: #1D1D1F;
+  --sf-ink-secondary: #55555C;
+  --sf-ink-tertiary: #6B6B73;
+
+  --sf-line: #E3E3E8;
+  --sf-line-strong: #86868F;
+
+  --sf-accent: #1F5FD6;
+  --sf-accent-hover: #1A51B8;
+  --sf-accent-subtle: #E7EEFC;
+  --sf-on-accent: #FFFFFF;
+  --sf-focus: #1F5FD6;
+
+  --sf-success: #17733F;
+  --sf-success-subtle: #E3F4EA;
+  --sf-warning: #8A5A00;
+  --sf-warning-subtle: #FBF0DA;
+  --sf-danger: #C2281F;
+  --sf-danger-hover: #A5211A;
+  --sf-danger-subtle: #FCE9E7;
+  --sf-on-danger: #FFFFFF;
+  --sf-info: #1F5FD6;
+  --sf-info-subtle: #E7EEFC;
+
+  --sf-backdrop: rgb(15 15 18 / 0.4);
+  --sf-shadow-1: 0 1px 2px rgb(0 0 0 / 0.05), 0 6px 16px rgb(0 0 0 / 0.08);
+  --sf-shadow-2: 0 2px 6px rgb(0 0 0 / 0.06), 0 18px 44px rgb(0 0 0 / 0.14);
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* Springs as CSS curves, sampled from damping and response. A CSS transition
+     restarts from the on-screen value when interrupted, so these stay reversible. */
+  --spring-move: linear(0, 0.019 2.4%, 0.098 6%, 0.231 10.4%, 0.385 15.4%, 0.539 20.8%, 0.671 26.6%, 0.774 32.8%, 0.853 39.2%, 0.906 46%, 0.942 53%, 0.966 60.3%, 0.98 67.8%, 0.989 75.6%, 0.994 83.5%, 0.997 91.7%, 1);
+  --spring-move-duration: 550ms;
+  --spring-sheet: linear(0, 0.017 2.4%, 0.095 6%, 0.231 10.4%, 0.403 15.4%, 0.576 20.8%, 0.731 26.6%, 0.85 32.8%, 0.93 39.2%, 0.98 46%, 1.005 53%, 1.014 60.3%, 1.014 67.8%, 1.011 75.6%, 1.007 83.5%, 1.004 91.7%, 1);
+  --spring-sheet-duration: 390ms;
+  --spring-snap: linear(0, 0.021 2.4%, 0.102 6%, 0.238 10.4%, 0.397 15.4%, 0.551 20.8%, 0.68 26.6%, 0.783 32.8%, 0.86 39.2%, 0.912 46%, 0.946 53%, 0.968 60.3%, 0.982 67.8%, 0.99 75.6%, 0.994 83.5%, 0.997 91.7%, 1);
+  --spring-snap-duration: 350ms;
+
+  --control-height: 2.25rem;
+  --sidebar-width: 15.5rem;
+  --rail-width: 4.5rem;
+  --topbar-height: 3.5rem;
+  --tabbar-height: 3.5rem;
+  --content-max: 72rem;
+  --reading-max: 45rem;
+}
+
+/* Dark is designed separately: elevation comes from lighter surfaces, not from shadows. */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --sf-canvas: #0F0F12;
+  --sf-surface: #18181C;
+  --sf-raised: #212126;
+  --sf-sunken: #131316;
+
+  --sf-ink: #F5F5F7;
+  --sf-ink-secondary: #B6B6BE;
+  --sf-ink-tertiary: #94949D;
+
+  --sf-line: #2C2C33;
+  --sf-line-strong: #7A7A84;
+
+  --sf-accent: #6AA5FF;
+  --sf-accent-hover: #8BBAFF;
+  --sf-accent-subtle: #1B2A45;
+  --sf-on-accent: #0B1424;
+  --sf-focus: #8BBAFF;
+
+  --sf-success: #4FC98A;
+  --sf-success-subtle: #14301F;
+  --sf-warning: #E7B85C;
+  --sf-warning-subtle: #33280F;
+  --sf-danger: #FF8A80;
+  --sf-danger-hover: #FFA39B;
+  --sf-danger-subtle: #3A1A18;
+  --sf-on-danger: #2B0B08;
+  --sf-info: #6AA5FF;
+  --sf-info-subtle: #1B2A45;
+
+  --sf-backdrop: rgb(0 0 0 / 0.6);
+  --sf-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.3), inset 0 0 0 1px rgb(255 255 255 / 0.04);
+  --sf-shadow-2: 0 2px 6px rgb(0 0 0 / 0.35), 0 18px 44px rgb(0 0 0 / 0.45), inset 0 0 0 1px rgb(255 255 255 / 0.05);
+}
+
+@media (pointer: coarse) {
+  :root {
+    --control-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+    --spring-move-duration: 0ms;
+    --spring-sheet-duration: 0ms;
+    --spring-snap-duration: 0ms;
+  }
+}

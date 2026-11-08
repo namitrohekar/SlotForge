@@ -1,0 +1,90 @@
+/* Removing Tailwind's defaults means only SlotForge tokens can be used. A stray bg-slate-500 generates nothing. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme {
+  --color-*: initial;
+  --shadow-*: initial;
+  --radius-*: initial;
+  --text-*: initial;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: ui-serif, "New York", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --text-display: clamp(1.75rem, 1.5rem + 1vw, 2.125rem);
+  --text-display--line-height: 1.18;
+  --text-display--letter-spacing: -0.022em;
+  --text-display--font-weight: 600;
+  --text-title-1: clamp(1.5rem, 1.38rem + 0.5vw, 1.75rem);
+  --text-title-1--line-height: 1.2;
+  --text-title-1--letter-spacing: -0.018em;
+  --text-title-1--font-weight: 600;
+  --text-title-2: clamp(1.25rem, 1.2rem + 0.2vw, 1.375rem);
+  --text-title-2--line-height: 1.27;
+  --text-title-2--letter-spacing: -0.012em;
+  --text-title-2--font-weight: 600;
+  --text-title-3: 1.0625rem;
+  --text-title-3--line-height: 1.41;
+  --text-title-3--letter-spacing: -0.006em;
+  --text-title-3--font-weight: 600;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.47;
+  --text-callout: 0.875rem;
+  --text-callout--line-height: 1.43;
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.38;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.33;
+  --text-caption--font-weight: 500;
+
+  --radius-sm: 0.3125rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@theme inline {
+  --color-canvas: var(--sf-canvas);
+  --color-surface: var(--sf-surface);
+  --color-raised: var(--sf-raised);
+  --color-sunken: var(--sf-sunken);
+  --color-ink: var(--sf-ink);
+  --color-ink-secondary: var(--sf-ink-secondary);
+  --color-ink-tertiary: var(--sf-ink-tertiary);
+  --color-line: var(--sf-line);
+  --color-line-strong: var(--sf-line-strong);
+  --color-accent: var(--sf-accent);
+  --color-accent-hover: var(--sf-accent-hover);
+  --color-accent-subtle: var(--sf-accent-subtle);
+  --color-on-accent: var(--sf-on-accent);
+  --color-focus: var(--sf-focus);
+  --color-success: var(--sf-success);
+  --color-success-subtle: var(--sf-success-subtle);
+  --color-warning: var(--sf-warning);
+  --color-warning-subtle: var(--sf-warning-subtle);
+  --color-danger: var(--sf-danger);
+  --color-danger-hover: var(--sf-danger-hover);
+  --color-danger-subtle: var(--sf-danger-subtle);
+  --color-on-danger: var(--sf-on-danger);
+  --color-info: var(--sf-info);
+  --color-info-subtle: var(--sf-info-subtle);
+
+  --shadow-1: var(--sf-shadow-1);
+  --shadow-2: var(--sf-shadow-2);
+}
+
+@utility h-control {
+  height: var(--control-height);
+}
+
+@utility min-h-control {
+  min-height: var(--control-height);
+}
+
+@utility size-control {
+  width: var(--control-height);
+  height: var(--control-height);
+}
