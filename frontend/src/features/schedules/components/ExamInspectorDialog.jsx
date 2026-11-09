@@ -51,6 +51,9 @@ export default function ExamInspectorDialog({ entry, entries, onClose }) {
                 <span className="min-w-0">
                   <span className="block text-callout text-ink">{hall.name}</span>
                   <span className="block text-footnote text-ink-tertiary">{hall.building}</span>
+                  <span className="block text-footnote text-ink-secondary">
+                    {hall.invigilators.length ? `Invigilators: ${hall.invigilators.join(', ')}` : 'No invigilator assigned'}
+                  </span>
                 </span>
                 <span data-numeric className="shrink-0 text-footnote text-ink-secondary">
                   {hall.seats} of {hall.capacity} seats

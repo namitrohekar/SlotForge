@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Building2, PencilLine, Plus, Trash2 } from 'lucide-react'
+import { Building2, PencilLine, Plus, Trash2, UserRoundCheck } from 'lucide-react'
 import { Link } from 'react-router'
 import Button from '../../../components/common/Button.jsx'
 import ConfirmDialog from '../../../components/common/ConfirmDialog.jsx'
@@ -14,11 +14,17 @@ import { useAuthStore } from '../../../store/authStore.js'
 import { useToastStore } from '../../../store/toastStore.js'
 import { hasAnyRole } from '../../../utils/roles.js'
 import { deleteDepartment, listDepartments } from '../services/academicsApi.js'
+import AppointHeadDialog from './AppointHeadDialog.jsx'
 import DepartmentFormDialog from './DepartmentFormDialog.jsx'
 
 const columns = [
   { key: 'name', header: 'Department', primary: true, sortable: true },
   { key: 'code', header: 'Code', sortable: true },
+  {
+    key: 'headName',
+    header: 'Head',
+    render: (department) => department.headName ?? <span className="text-ink-tertiary">Not appointed</span>,
+  },
   {
     key: 'courseCount',
     header: 'Programmes',
@@ -57,11 +63,13 @@ const columns = [
 
 export default function DepartmentsTab() {
   const canEdit = useAuthStore((state) => hasAnyRole(state.user, ['EXAM_COORDINATOR']))
+  const canAppoint = useAuthStore((state) => hasAnyRole(state.user, ['ADMIN']))
   const toast = useToastStore((state) => state.push)
   const { data, error, loading, reload, query, setFilter, setPage, setSort } = usePagedList(listDepartments)
   // null when closed, { department: null } to add, { department } to edit.
   const [form, setForm] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [appointing, setAppointing] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const remove = async () => {
@@ -83,6 +91,7 @@ export default function DepartmentsTab() {
       label={`Actions for ${department.name}`}
       items={[
         { label: 'Edit', icon: PencilLine, onSelect: () => setForm({ department }) },
+        ...(canAppoint ? [{ label: 'Appoint head', icon: UserRoundCheck, onSelect: () => setAppointing(department) }] : []),
         // Only a department nothing refers to can go; the counts beside it say why.
         {
           label: 'Delete',
@@ -136,6 +145,18 @@ export default function DepartmentsTab() {
           onClose={() => setForm(null)}
           onSaved={(message) => {
             setForm(null)
+            toast({ message })
+            reload()
+          }}
+        />
+      )}
+
+      {appointing && (
+        <AppointHeadDialog
+          department={appointing}
+          onClose={() => setAppointing(null)}
+          onSaved={(message) => {
+            setAppointing(null)
             toast({ message })
             reload()
           }}

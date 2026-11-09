@@ -3,8 +3,17 @@ import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '../../store/authStore.js'
+import { demoLogin, fetchAuthOptions, fetchDemoUsers } from '../auth/services/authApi.js'
 import TimetableTab from './components/TimetableTab.jsx'
-import { approveVersion, generateTimetable, listEntries, listVersions, listViolations } from './services/schedulesApi.js'
+import { approveVersion, generateTimetable, listEntries, listVersions, listViolations, submitVersion } from './services/schedulesApi.js'
+
+vi.mock('../auth/services/authApi.js', () => ({
+  fetchAuthOptions: vi.fn(),
+  fetchDemoUsers: vi.fn(),
+  demoLogin: vi.fn(),
+  fetchCurrentUser: vi.fn(),
+  logout: vi.fn(),
+}))
 
 vi.mock('./services/schedulesApi.js', () => ({
   generateTimetable: vi.fn(),
@@ -12,6 +21,7 @@ vi.mock('./services/schedulesApi.js', () => ({
   listEntries: vi.fn(),
   listViolations: vi.fn(),
   deleteVersion: vi.fn(),
+  submitVersion: vi.fn(),
   approveVersion: vi.fn(),
   returnVersion: vi.fn(),
   publishVersion: vi.fn(),
@@ -19,7 +29,7 @@ vi.mock('./services/schedulesApi.js', () => ({
 
 const session = {
   id: 1, startDate: '2026-12-07', endDate: '2026-12-19', slotCount: 12, examinationCount: 3, status: 'PLANNING',
-  progress: { papersWithoutStudents: [], activeApprovers: 1 },
+  progress: { papersWithoutStudents: [], approverPost: 'Head of MCA', approverName: 'Dr Rao', approverIds: [1] },
 }
 const version = {
   id: 5, versionNo: 2, status: 'DRAFT', createdAt: '2026-11-08T10:00:00Z', examsTotal: 3, examsScheduled: 2, slotsUsed: 2, searchNodes: 1240, backtracks: 4, durationMs: 86,
@@ -28,7 +38,7 @@ const version = {
 const entry = (examinationId, subjectName, date, conflicts) => ({
   examinationId, subjectCode: `C${examinationId}`, subjectName, heavy: false, departmentCode: 'MCA', durationMinutes: 180, slotId: examinationId,
   date, start: '10:00:00', end: '13:00:00', students: 60,
-  halls: [{ code: 'MB-101', name: 'Main 101', building: 'Main', seats: 60, capacity: 60 }], conflicts,
+  halls: [{ code: 'MB-101', name: 'Main 101', building: 'Main', seats: 60, capacity: 60, invigilators: ['A Rao', 'B Shah'] }], conflicts,
 })
 const maths = entry(1, 'Mathematics', '2026-12-07', [{ examinationId: 2, sharedStudents: 12 }])
 const physics = entry(2, 'Physics', '2026-12-14', [{ examinationId: 1, sharedStudents: 12 }])
@@ -44,6 +54,7 @@ describe('Timetable', () => {
     useAuthStore.setState({ status: 'signedIn', user: null })
     listEntries.mockResolvedValue([maths, physics])
     listViolations.mockResolvedValue([])
+    fetchAuthOptions.mockResolvedValue({ demoLoginEnabled: false })
   })
 
   it('shows what was placed, how, and exactly why the rest were not', async () => {
@@ -92,7 +103,8 @@ describe('Timetable', () => {
   })
 
   const signInAs = (...roles) => useAuthStore.setState({ user: { id: 1, fullName: 'X', email: 'x@vjti.ac.in', roles } })
-  const complete = { ...version, examsScheduled: 3, unplaced: [] }
+  const unsent = { ...version, examsScheduled: 3, unplaced: [] }
+  const complete = { ...unsent, submittedAt: '2026-11-08T11:00:00Z' }
 
   it('offers a head of department approval only when every paper is placed', async () => {
     signInAs('HOD')
@@ -101,7 +113,98 @@ describe('Timetable', () => {
 
     expect(await screen.findByText('Every paper must be placed before it can be approved.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Send back' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Send back' })).not.toBeInTheDocument()
+  })
+
+  it('lets a coordinator send a complete draft for approval', async () => {
+    signInAs('EXAM_COORDINATOR')
+    listVersions.mockResolvedValue([unsent])
+    submitVersion.mockResolvedValue()
+    renderTab({ session, canEdit: true, reloadSession: vi.fn() })
+
+    expect(await screen.findByText('Not sent for approval yet.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Send for approval' }))
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Send version 2 for approval?' })).getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => expect(submitVersion).toHaveBeenCalledWith(5))
+  })
+
+  it('gives a head of department nothing to act on until the draft is sent', async () => {
+    signInAs('HOD')
+    listVersions.mockResolvedValue([unsent])
+    renderTab({ session, canEdit: false })
+
+    expect(await screen.findByText('Not sent for approval yet.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Send back' })).not.toBeInTheDocument()
+  })
+
+  it('stops offering Send once a draft has been sent or has gone out of date', async () => {
+    signInAs('EXAM_COORDINATOR')
+    listVersions.mockResolvedValue([complete])
+    renderTab()
+    await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it.')
+    expect(screen.queryByRole('button', { name: 'Send for approval' })).not.toBeInTheDocument()
+    cleanup()
+
+    listVersions.mockResolvedValue([unsent])
+    listViolations.mockResolvedValue(['MCA302 is outside its allowed dates.'])
+    renderTab()
+    await screen.findByText('MCA302 is outside its allowed dates.')
+    expect(screen.queryByRole('button', { name: 'Send for approval' })).not.toBeInTheDocument()
+  })
+
+  it('shows who did each step and whose turn it is', async () => {
+    signInAs('EXAM_COORDINATOR')
+    listVersions.mockResolvedValue([{ ...complete, generatedBy: 'Asha', sentBy: 'Bela' }])
+    renderTab()
+
+    const journey = within(await screen.findByRole('list', { name: 'Approval journey' }))
+    expect(journey.getByText('Asha')).toBeInTheDocument()
+    expect(journey.getByText('Bela')).toBeInTheDocument()
+    expect(journey.getByText('Dr Rao, Head of MCA')).toBeInTheDocument()
+  })
+
+  it('in a demo, lets you become whoever the flow is waiting for', async () => {
+    signInAs('EXAM_COORDINATOR')
+    fetchAuthOptions.mockResolvedValue({ demoLoginEnabled: true })
+    fetchDemoUsers.mockResolvedValue([{ id: 3, fullName: 'Demo Head', email: 'h@demo.slotforge.test', roles: ['HOD'] }])
+    demoLogin.mockResolvedValue({ id: 3, fullName: 'Demo Head', email: 'h@demo.slotforge.test', roles: ['HOD'] })
+    listVersions.mockResolvedValue([complete])
+    renderTab({ session: { ...session, progress: { ...session.progress, approverIds: [3] } }, canEdit: true })
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Continue as Demo Head' }))
+
+    await waitFor(() => expect(demoLogin).toHaveBeenCalledWith(3))
+  })
+
+  it('opens on the version under review and names it, and protects it from deletion', async () => {
+    signInAs('EXAM_COORDINATOR')
+    listVersions.mockResolvedValue([{ ...unsent, id: 6, versionNo: 3 }, complete])
+    renderTab()
+
+    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it.')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: 'Version 2 · Waiting for approval' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete version 2' })).not.toBeInTheDocument()
+  })
+
+  it('warns about a published timetable that needs attention', async () => {
+    listVersions.mockResolvedValue([{ ...complete, status: 'PUBLISHED', publishedAt: '2026-11-08T12:00:00Z', invigilatorCount: 3 }])
+    listViolations.mockResolvedValue(['A Rao can no longer invigilate MCA101 in MB-101 on Mon, 7 Dec.'])
+    renderTab()
+
+    expect(await screen.findByText('A Rao can no longer invigilate MCA101 in MB-101 on Mon, 7 Dec.')).toBeInTheDocument()
+    expect(screen.getByText(/This published timetable needs attention/)).toBeInTheDocument()
+  })
+
+  it('gives a different head of department nothing to act on', async () => {
+    signInAs('HOD')
+    listVersions.mockResolvedValue([complete])
+    renderTab({ session: { ...session, progress: { ...session.progress, approverIds: [99] } }, canEdit: false })
+
+    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Send back' })).not.toBeInTheDocument()
   })
 
   it('lets a head of department approve a complete draft', async () => {
@@ -123,7 +226,7 @@ describe('Timetable', () => {
     renderTab({ session, canEdit: false })
 
     expect(await screen.findByText('MCA301 has 1 student without a seat.')).toBeInTheDocument()
-    expect(screen.getByText('Out of date. It has to be generated again.')).toBeInTheDocument()
+    expect(screen.getByText('Fix these problems, then generate it again.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send back' })).toBeInTheDocument()
   })
@@ -151,7 +254,7 @@ describe('Timetable', () => {
     listVersions.mockResolvedValue([complete])
     renderTab()
 
-    expect(await screen.findByText('Waiting for a head of department to approve it.')).toBeInTheDocument()
+    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Publish' })).not.toBeInTheDocument()
     cleanup()
 
@@ -172,7 +275,7 @@ describe('Timetable', () => {
 
   it('says plainly when papers were left out for having no students', async () => {
     listVersions.mockResolvedValue([version])
-    renderTab({ session: { ...session, progress: { papersWithoutStudents: ['MCA311 Big Data', 'MCA312 Mobile'], activeApprovers: 1 } }, canEdit: true })
+    renderTab({ session: { ...session, progress: { papersWithoutStudents: ['MCA311 Big Data', 'MCA312 Mobile'], approverPost: 'Head of MCA', approverName: 'Dr Rao', approverIds: [1] } }, canEdit: true })
 
     expect(await screen.findByText('2 papers have no students, so they are not in this timetable')).toBeInTheDocument()
     expect(screen.getByText(/MCA311 Big Data, MCA312 Mobile/)).toBeInTheDocument()
@@ -181,9 +284,9 @@ describe('Timetable', () => {
   it('warns when nobody is able to approve', async () => {
     signInAs('EXAM_COORDINATOR')
     listVersions.mockResolvedValue([complete])
-    renderTab({ session: { ...session, progress: { papersWithoutStudents: [], activeApprovers: 0 } }, canEdit: true })
+    renderTab({ session: { ...session, progress: { papersWithoutStudents: [], approverPost: 'Head of MCA', approverName: null, approverIds: [] } }, canEdit: true })
 
-    expect(await screen.findByText(/No head of department can sign in/)).toBeInTheDocument()
+    expect(await screen.findByText('There is no Head of MCA. Ask an administrator to appoint one.')).toBeInTheDocument()
   })
 
   it('says what is missing rather than offering Generate', async () => {

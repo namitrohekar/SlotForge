@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Link } from 'react-router'
 import { CalendarCheck, CalendarDays, CalendarClock } from 'lucide-react'
+import Alert from '../../../components/common/Alert.jsx'
 import EmptyState from '../../../components/common/EmptyState.jsx'
 import ErrorState from '../../../components/common/ErrorState.jsx'
 import LinkButton from '../../../components/common/LinkButton.jsx'
@@ -9,13 +10,13 @@ import StatusBadge from '../../../components/common/StatusBadge.jsx'
 import PageHeader from '../../../components/layout/PageHeader.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { useAuthStore } from '../../../store/authStore.js'
-import { formatDate, formatDateTime, formatLongDate } from '../../../utils/format.js'
+import { formatDate, formatDateTime, formatDay, formatLongDate } from '../../../utils/format.js'
 import { hasAnyRole } from '../../../utils/roles.js'
 import NextStepBanner from '../../exams/components/NextStepBanner.jsx'
 import SessionSteps from '../../exams/components/SessionSteps.jsx'
 import { getSession, listSessions } from '../../exams/services/examsApi.js'
 import { nextStep, sessionSteps } from '../../exams/sessionSteps.js'
-import { listAwaitingApproval } from '../../schedules/services/schedulesApi.js'
+import { listAwaitingApproval, listDutiesAtRisk } from '../../schedules/services/schedulesApi.js'
 import { fetchHealth } from '../../system/services/systemApi.js'
 
 const loadSessions = () => listSessions({ size: 50, sort: 'startDate,asc' })
@@ -65,6 +66,28 @@ function CurrentSession({ id }) {
   )
 }
 
+function DutiesAtRisk() {
+  const { data } = useApi(listDutiesAtRisk)
+  if (!data?.length) return null
+
+  return (
+    <div className="mb-8">
+      <Alert tone="danger" title={data.length === 1 ? '1 published duty has nobody able to do it' : `${data.length} published duties have nobody able to do them`}>
+        <ul className="mt-1 space-y-0.5">
+          {data.map((duty) => (
+            <li key={`${duty.sessionId}-${duty.staffName}-${duty.date}-${duty.paperCode}`}>
+              <Link to={`/sessions/${duty.sessionId}/timetable`} className="font-medium underline">
+                {duty.sessionName}
+              </Link>
+              : {duty.staffName} cannot invigilate {duty.paperCode} in {duty.hallCode} on {formatDay(duty.date)}.
+            </li>
+          ))}
+        </ul>
+      </Alert>
+    </div>
+  )
+}
+
 function CoordinatorHome() {
   const { data, error, reload } = useApi(loadSessions)
 
@@ -76,6 +99,7 @@ function CoordinatorHome() {
 
   return (
     <>
+      <DutiesAtRisk />
       {current ? (
         <CurrentSession id={current.id} />
       ) : (
@@ -139,6 +163,17 @@ function ReviewerHome() {
 }
 
 function PersonalHome() {
+  const isStaff = useAuthStore((state) => hasAnyRole(state.user, ['FACULTY', 'INVIGILATOR']))
+  if (isStaff) {
+    return (
+      <EmptyState
+        icon={CalendarClock}
+        title="Your invigilation duties"
+        description="See where and when you are on duty, and tell us the dates you cannot invigilate."
+        action={<LinkButton to="/my/duties">Open My duties</LinkButton>}
+      />
+    )
+  }
   return (
     <EmptyState
       icon={CalendarClock}

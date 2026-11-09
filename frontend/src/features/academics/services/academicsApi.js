@@ -8,6 +8,7 @@ export const listAllDepartments = () =>
   listDepartments({ size: 100, sort: 'name,asc' }).then((page) => page.items)
 export const createDepartment = (body) => api.post('/departments', body).then(data)
 export const updateDepartment = (id, body) => api.put(`/departments/${id}`, body).then(data)
+export const appointHead = (id, userId) => api.put(`/departments/${id}/head`, { userId }).then(data)
 export const deleteDepartment = (id) => api.delete(`/departments/${id}`)
 
 export const listCourses = (query) => api.get('/courses', { params: query }).then(data)

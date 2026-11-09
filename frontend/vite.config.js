@@ -11,8 +11,9 @@ export default defineConfig({
     // One origin in development, so session cookies and CSRF behave as they will in production.
     proxy: {
       '/api': backend,
-      '/oauth2': backend,
-      '/login/oauth2': backend,
+      // Keep the browser's host, or Spring rejects Google's redirect as not matching the one it sent.
+      '/oauth2': { target: backend, changeOrigin: false },
+      '/login/oauth2': { target: backend, changeOrigin: false },
     },
   },
   test: {

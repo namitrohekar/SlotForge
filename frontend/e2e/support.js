@@ -113,9 +113,13 @@ const examSession = {
     papersWithoutStudents: ['MCA311 Big Data Analytics'],
     latestVersionNo: 1,
     latestVersionStatus: 'DRAFT',
+    inReviewStatus: 'DRAFT',
+    latestProblems: 0,
     latestPlaced: 2,
     latestTotal: 3,
-    activeApprovers: 1,
+    approverPost: 'Head of MCA',
+    approverName: 'Demo Head of Department',
+    approverIds: [3],
   },
 }
 
@@ -131,6 +135,7 @@ const examinations = [
 ]
 
 const version = {
+  submittedAt: '2026-11-08T11:00:00Z',
   id: 1,
   versionNo: 1,
   status: 'DRAFT',
@@ -162,7 +167,7 @@ const entry = (examinationId, subjectCode, subjectName, slotId, date, start, end
   start,
   end,
   students: 60,
-  halls: [{ code: 'MB-101', name: 'Main Building 101', building: 'Main Building', seats: 60, capacity: 60 }],
+  halls: [{ code: 'MB-101', name: 'Main Building 101', building: 'Main Building', seats: 60, capacity: 60, invigilators: ['Demo Invigilator', 'Demo Faculty'] }],
   conflicts,
 })
 
@@ -246,6 +251,7 @@ export async function stubApi(page, { signedIn = true } = {}) {
   await page.route('**/api/exam-sessions/1/schedule-versions', (route) => route.fulfill({ json: [version] }))
   await page.route('**/api/schedule-versions/1/entries', (route) => route.fulfill({ json: entries }))
   await page.route('**/api/schedule-versions/1/violations', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/schedule-versions/duties-at-risk', (route) => route.fulfill({ json: [] }))
   await page.route(
     (url) => url.pathname === '/api/users',
     (route) => route.fulfill({ json: { items: users, page: 0, size: 20, totalItems: users.length, totalPages: 1 } }),

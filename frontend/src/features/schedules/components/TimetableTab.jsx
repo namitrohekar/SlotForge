@@ -16,6 +16,7 @@ import { toApiError } from '../../../services/apiError.js'
 import { useToastStore } from '../../../store/toastStore.js'
 import { formatDateTime } from '../../../utils/format.js'
 import { deleteVersion, generateTimetable, listEntries, listVersions, listViolations } from '../services/schedulesApi.js'
+import ApprovalJourney from './ApprovalJourney.jsx'
 import ExamInspectorDialog from './ExamInspectorDialog.jsx'
 import TimetableAgenda from './TimetableAgenda.jsx'
 import TimetableGrid from './TimetableGrid.jsx'
@@ -23,6 +24,9 @@ import UnplacedPanel from './UnplacedPanel.jsx'
 import WorkflowBar from './WorkflowBar.jsx'
 
 const STATUS_NAMES = { DRAFT: 'Draft', REVIEWED: 'Approved', PUBLISHED: 'Published', SUPERSEDED: 'Superseded' }
+
+const inReview = (version) => version.status === 'REVIEWED' || (version.status === 'DRAFT' && Boolean(version.submittedAt))
+const versionState = (version) => (version.status === 'DRAFT' && version.submittedAt ? 'Waiting for approval' : STATUS_NAMES[version.status])
 
 const runSummary = (version) =>
   `${version.slotsUsed} ${version.slotsUsed === 1 ? 'slot' : 'slots'} used · generated ${formatDateTime(version.createdAt)}`
@@ -42,11 +46,14 @@ function LeftOutNotice({ papers }) {
   )
 }
 
-function OutOfDateNotice({ problems }) {
+function OutOfDateNotice({ problems, published }) {
   if (problems.length === 0) return null
   return (
     <div className="mb-6">
-      <Alert tone="danger" title="This timetable no longer matches its papers, slots or halls">
+      <Alert
+        tone="danger"
+        title={published ? 'This published timetable needs attention. Reopen the session, generate again and publish a replacement.' : 'This timetable cannot go forward yet'}
+      >
         <ul className="mt-1 space-y-0.5">
           {problems.map((problem) => (
             <li key={problem}>{problem}</li>
@@ -63,12 +70,12 @@ export default function TimetableTab() {
   const isPhone = useMediaQuery('(max-width: 47.99rem)')
   const [params, setParams] = useSearchParams()
   const versions = useApi(useCallback(() => listVersions(session.id), [session.id]))
-  const current = versions.data?.find((version) => String(version.id) === params.get('version')) ?? versions.data?.[0]
+  const current = versions.data?.find((version) => String(version.id) === params.get('version')) ?? versions.data?.find(inReview) ?? versions.data?.[0]
   const currentId = current?.id
   const entries = useApi(useCallback(() => (currentId ? listEntries(currentId) : Promise.resolve([])), [currentId]))
-  // An incomplete version already lists its missing papers and cannot be approved. Published ones are history.
-  const checkedId =
-    session.status === 'PLANNING' && ['DRAFT', 'REVIEWED'].includes(current?.status) && current.examsScheduled === current.examsTotal ? currentId : null
+  // An incomplete version already lists its missing papers and cannot be approved. A published one stays live, so it is checked too.
+  const checked = current?.status === 'PUBLISHED' || (session.status === 'PLANNING' && ['DRAFT', 'REVIEWED'].includes(current?.status))
+  const checkedId = checked && current.examsScheduled === current.examsTotal ? currentId : null
   const violations = useApi(useCallback(() => (checkedId ? listViolations(checkedId) : Promise.resolve([])), [checkedId]))
   const problems = violations.data ?? []
   const [generating, setGenerating] = useState(false)
@@ -157,7 +164,7 @@ export default function TimetableTab() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="w-44">
+          <div className="w-60 max-w-full">
             <Select
               aria-label="Timetable version"
               value={current.id}
@@ -165,12 +172,12 @@ export default function TimetableTab() {
             >
               {versions.data.map((version) => (
                 <option key={version.id} value={version.id}>
-                  Version {version.versionNo} · {STATUS_NAMES[version.status]}
+                  Version {version.versionNo} · {versionState(version)}
                 </option>
               ))}
             </Select>
           </div>
-          {canEdit && current.status === 'DRAFT' && (
+          {canEdit && current.status === 'DRAFT' && !current.submittedAt && (
             <IconButton
               label={`Delete version ${current.versionNo}`}
               icon={Trash2}
@@ -185,10 +192,12 @@ export default function TimetableTab() {
         </div>
       </header>
 
+      <ApprovalJourney version={current} progress={session.progress} />
+
       <WorkflowBar
         version={current}
         planning={session.status === 'PLANNING'}
-        activeApprovers={session.progress.activeApprovers}
+        progress={session.progress}
         outOfDate={problems.length > 0}
         onChanged={() => {
           versions.reload()
@@ -197,7 +206,7 @@ export default function TimetableTab() {
         }}
       />
 
-      <OutOfDateNotice problems={problems} />
+      <OutOfDateNotice problems={problems} published={current.status === 'PUBLISHED'} />
       <LeftOutNotice papers={leftOut} />
       {nothingPlaced && <UnplacedPanel unplaced={nothingPlaced} />}
       <UnplacedPanel unplaced={current.unplaced} />

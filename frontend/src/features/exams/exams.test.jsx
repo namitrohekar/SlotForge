@@ -67,7 +67,7 @@ describe('Exam setup', () => {
   describe('where a session stands', () => {
     const progress = {
       openSlots: 12, slotsTooShort: 0, shortestPaperMinutes: 180, readyPapers: 3, papersWithoutStudents: [],
-      latestVersionNo: 0, latestVersionStatus: null, latestPlaced: null, latestTotal: null, activeApprovers: 1,
+      latestVersionNo: 0, latestVersionStatus: null, latestPlaced: null, latestTotal: null, inReviewStatus: null, latestProblems: 0, approverIds: [3],
     }
     const at = (changes) => ({ status: 'PLANNING', progress: { ...progress, ...changes } })
     const coordinator = { isCoordinator: true }
@@ -77,14 +77,17 @@ describe('Exam setup', () => {
       expect(nextStep(at({ readyPapers: 0 }), coordinator).to).toBe('examinations')
       expect(nextStep(at({ slotsTooShort: 12 }), coordinator).message).toContain('3 h')
       expect(nextStep(at({}), coordinator).to).toBe('timetable')
-      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 3, latestTotal: 3 }), coordinator)).toBeNull()
-      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'REVIEWED', latestPlaced: 3, latestTotal: 3 }), coordinator).message).toContain('publish')
+      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 3, latestTotal: 3 }), coordinator).message).toContain('send for approval')
+      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 3, latestTotal: 3, latestProblems: 2 }), coordinator).message).toContain('problems to fix')
+      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 3, latestTotal: 3, inReviewStatus: 'DRAFT' }), coordinator)).toBeNull()
+      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'REVIEWED', latestPlaced: 3, latestTotal: 3, inReviewStatus: 'REVIEWED' }), coordinator).message).toContain('publish')
     })
 
     it('asks a head of department to act only on a complete draft', () => {
-      const hod = { isHod: true }
-      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 3, latestTotal: 3 }), hod).action).toBe('Review it')
-      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 2, latestTotal: 3 }), hod)).toBeNull()
+      const hod = { userId: 3 }
+      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 3, latestTotal: 3, inReviewStatus: 'DRAFT' }), hod).action).toBe('Review it')
+      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 3, latestTotal: 3 }), hod)).toBeNull()
+      expect(nextStep(at({ latestVersionNo: 1, latestVersionStatus: 'DRAFT', latestPlaced: 3, latestTotal: 3, inReviewStatus: 'DRAFT' }), { userId: 9 })).toBeNull()
     })
 
     it('flags papers left without students, and hides the timetable from staff who cannot see drafts', () => {

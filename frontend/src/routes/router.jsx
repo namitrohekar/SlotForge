@@ -61,6 +61,7 @@ export const router = createBrowserRouter([
               },
             ],
           },
+          guarded('my/duties', () => import('../features/schedules/pages/MyDutiesPage.jsx')),
           guarded('students', () => import('../features/students/pages/StudentsPage.jsx')),
           guarded('halls', () => import('../features/halls/pages/HallsPage.jsx')),
           guarded('users', () => import('../features/users/pages/UsersPage.jsx')),

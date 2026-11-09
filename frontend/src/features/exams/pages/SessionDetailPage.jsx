@@ -23,7 +23,7 @@ export default function SessionDetailPage() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const isCoordinator = useAuthStore((state) => hasAnyRole(state.user, ['EXAM_COORDINATOR']))
-  const isHod = useAuthStore((state) => hasAnyRole(state.user, ['HOD']))
+  const userId = useAuthStore((state) => state.user?.id)
   // Drafts are visible only to the people who produce and review them.
   const canSeeTimetable = useAuthStore((state) => hasAnyRole(state.user, ['ADMIN', 'EXAM_COORDINATOR', 'HOD']))
   const { data: session, error, reload } = useApi(useCallback(() => getSession(id), [id]))
@@ -33,7 +33,7 @@ export default function SessionDetailPage() {
 
   const rest = session.heavyGapDays ? `${plural(session.heavyGapDays, 'rest day')} between heavy papers` : 'no rest day needed between heavy papers'
   const rules = `${plural(session.maxExamsPerStudentPerDay, 'paper')} per student per day, ${rest}.`
-  const next = nextStep(session, { isCoordinator, isHod })
+  const next = nextStep(session, { isCoordinator, userId })
 
   return (
     <>

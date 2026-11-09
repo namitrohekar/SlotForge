@@ -1,5 +1,5 @@
 const REASONS = {
-  SLOT_CLOSED: 'blocked',
+  SLOT_CLOSED: 'blocked or already past',
   DURATION: 'too short for this paper',
   WINDOW: 'outside its date window',
   STUDENT_CLASH: 'a student already has a paper',

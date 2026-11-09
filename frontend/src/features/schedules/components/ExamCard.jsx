@@ -7,6 +7,8 @@ function hallSummary(halls) {
 
 /** tone is 'rest' when another paper is in focus and this one is unrelated. shared is students in common with it. */
 export default function ExamCard({ entry, tone, shared, onOpen, onFocusChange }) {
+  const invigilators = entry.halls.reduce((total, hall) => total + hall.invigilators.length, 0)
+
   return (
     <button
       type="button"
@@ -30,7 +32,7 @@ export default function ExamCard({ entry, tone, shared, onOpen, onFocusChange })
         </span>
       ) : (
         <span data-numeric className="mt-1 block truncate text-footnote text-ink-secondary">
-          {entry.students} students · {hallSummary(entry.halls)}
+          {entry.students} students · {hallSummary(entry.halls)} · {invigilators} {invigilators === 1 ? 'invigilator' : 'invigilators'}
         </span>
       )}
     </button>

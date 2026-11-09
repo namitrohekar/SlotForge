@@ -1,6 +1,7 @@
 export const ROLE_LABELS = {
   ADMIN: 'Administrator',
   EXAM_COORDINATOR: 'Exam coordinator',
+  CONTROLLER: 'Controller of Examinations',
   HOD: 'Head of department',
   FACULTY: 'Faculty',
   INVIGILATOR: 'Invigilator',
@@ -8,9 +9,9 @@ export const ROLE_LABELS = {
 }
 
 // Mirrors the backend role hierarchy. The backend still decides; this only shapes the interface.
-const IMPLIED = { ADMIN: ['ADMIN', 'EXAM_COORDINATOR'], HOD: ['HOD', 'FACULTY'] }
+const IMPLIED = { ADMIN: ['ADMIN', 'EXAM_COORDINATOR'], CONTROLLER: ['CONTROLLER', 'HOD', 'FACULTY'], HOD: ['HOD', 'FACULTY'] }
 
-const STAFF = ['FACULTY', 'HOD', 'INVIGILATOR']
+const STAFF = ['FACULTY', 'HOD', 'CONTROLLER', 'INVIGILATOR']
 const ADMINISTRATION = ['ADMIN', 'EXAM_COORDINATOR']
 const count = (roles, group) => roles.filter((role) => group.includes(role)).length
 
@@ -20,13 +21,13 @@ export function roleConflict(roles) {
     return 'A student account cannot also hold a staff or administrative role.'
   }
   if (count(roles, STAFF) > 1) {
-    return 'Choose only one of Faculty, Head of department or Invigilator. A head of department already has faculty access, and invigilator is for non-teaching staff.'
+    return 'Choose only one of Faculty, Head of department, Controller of Examinations or Invigilator. A head of department already has faculty access, and invigilator is for non-teaching staff.'
   }
   if (count(roles, ADMINISTRATION) > 1) {
     return 'Choose Administrator or Exam coordinator, not both. An administrator already has coordinator access.'
   }
-  if (roles.includes('HOD') && count(roles, ADMINISTRATION) > 0) {
-    return 'A head of department reviews timetables, so cannot also be an administrator or exam coordinator, who generate and publish them.'
+  if ((roles.includes('HOD') || roles.includes('CONTROLLER')) && count(roles, ADMINISTRATION) > 0) {
+    return 'Whoever approves timetables cannot also be an administrator or exam coordinator, who generate and publish them.'
   }
   return undefined
 }

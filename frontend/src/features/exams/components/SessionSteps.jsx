@@ -1,12 +1,6 @@
 import { Check } from 'lucide-react'
 import { NavLink } from 'react-router'
-
-const MARKS = {
-  done: 'bg-accent text-on-accent',
-  current: 'border border-accent text-accent',
-  attention: 'bg-warning-subtle text-warning',
-  todo: 'border border-line-strong text-ink-tertiary',
-}
+import { STEP_MARKS } from '../sessionSteps.js'
 
 // A session is one job in three stages, so its sections read as steps with their progress, not as loose tabs.
 export default function SessionSteps({ steps, base = '' }) {
@@ -23,7 +17,7 @@ export default function SessionSteps({ steps, base = '' }) {
                 }`
               }
             >
-              <span aria-hidden="true" data-numeric className={`grid size-6 shrink-0 place-items-center rounded-full text-caption font-medium ${MARKS[step.state]}`}>
+              <span aria-hidden="true" data-numeric className={`grid size-6 shrink-0 place-items-center rounded-full text-caption font-medium ${STEP_MARKS[step.state]}`}>
                 {step.state === 'done' ? <Check size={14} /> : index + 1}
               </span>
               <span className="min-w-0">

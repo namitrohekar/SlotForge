@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -19,13 +19,13 @@ const users = [
   { id: 6, fullName: 'Demo Student', email: 'student@demo.slotforge.test', roles: ['STUDENT'] },
 ]
 
-function renderLogin(from) {
+function renderLogin(from, search = '') {
   const router = createMemoryRouter(
     [
       { path: '/login', element: <LoginPage /> },
       { path: '*', element: <p>Arrived</p> },
     ],
-    { initialEntries: [{ pathname: '/login', state: from ? { from } : null }] },
+    { initialEntries: [{ pathname: '/login', search, state: from ? { from } : null }] },
   )
   render(<RouterProvider router={router} />)
   return router
@@ -64,6 +64,28 @@ describe('LoginPage', () => {
     renderLogin()
 
     expect(await screen.findByText('Your session ended. Sign in again to continue.')).toBeInTheDocument()
+  })
+
+  it('offers Google only when it is switched on', async () => {
+    renderLogin()
+    await screen.findByRole('button', { name: /Student/ })
+    expect(screen.queryByRole('link', { name: 'Continue with Google' })).not.toBeInTheDocument()
+    cleanup()
+
+    fetchAuthOptions.mockResolvedValue({ googleEnabled: true, demoLoginEnabled: false })
+    renderLogin()
+
+    expect(await screen.findByRole('link', { name: 'Continue with Google' })).toHaveAttribute('href', '/oauth2/authorization/google')
+    expect(screen.queryByText('No sign-in method is set up')).not.toBeInTheDocument()
+  })
+
+  it('says why Google refused, and has a plain message for anything else', async () => {
+    renderLogin(undefined, '?error=DOMAIN_NOT_ALLOWED')
+    expect(await screen.findByText('Use your VJTI Google account. Other accounts cannot sign in.')).toBeInTheDocument()
+    cleanup()
+
+    renderLogin(undefined, '?error=SOMETHING_NEW')
+    expect(await screen.findByText('Google sign-in did not finish. Try again.')).toBeInTheDocument()
   })
 
   it('says when no sign-in method is set up', async () => {

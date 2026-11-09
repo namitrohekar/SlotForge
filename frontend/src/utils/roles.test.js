@@ -34,6 +34,13 @@ describe('roles', () => {
     expect(hasAnyRole(as('FACULTY'), ['HOD'])).toBe(false)
   })
 
+  it('gives the Controller of Examinations reviewer access, but not administration', () => {
+    expect(hasAnyRole(as('CONTROLLER'), ['HOD'])).toBe(true)
+    expect(hasAnyRole(as('CONTROLLER'), ['EXAM_COORDINATOR'])).toBe(false)
+    expect(roleConflict(['CONTROLLER', 'ADMIN'])).toBeDefined()
+    expect(roleConflict(['CONTROLLER', 'HOD'])).toBeDefined()
+  })
+
   it('refuses the same role combinations as the server', () => {
     expect(roleConflict(['STUDENT', 'ADMIN'])).toMatch(/student/)
     expect(roleConflict(['HOD', 'STUDENT'])).toMatch(/student/)
