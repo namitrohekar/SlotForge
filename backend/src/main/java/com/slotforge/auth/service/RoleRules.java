@@ -11,7 +11,7 @@ import com.slotforge.common.exception.ApiException;
  */
 public final class RoleRules {
 
-    private static final Set<Role> STAFF = Set.of(Role.FACULTY, Role.HOD, Role.INVIGILATOR);
+    private static final Set<Role> STAFF = Set.of(Role.FACULTY, Role.HOD, Role.CONTROLLER, Role.INVIGILATOR);
     private static final Set<Role> ADMINISTRATION = Set.of(Role.ADMIN, Role.EXAM_COORDINATOR);
 
     private RoleRules() {
@@ -23,14 +23,14 @@ public final class RoleRules {
             return "A student account cannot also hold a staff or administrative role.";
         }
         if (count(roles, STAFF) > 1) {
-            return "Choose only one of Faculty, Head of department or Invigilator. "
+            return "Choose only one of Faculty, Head of department, Controller of Examinations or Invigilator. "
                     + "A head of department already has faculty access, and invigilator is for non-teaching staff.";
         }
         if (count(roles, ADMINISTRATION) > 1) {
             return "Choose Administrator or Exam coordinator, not both. An administrator already has coordinator access.";
         }
-        if (roles.contains(Role.HOD) && count(roles, ADMINISTRATION) > 0) {
-            return "A head of department reviews timetables, so cannot also be an administrator or exam coordinator, "
+        if ((roles.contains(Role.HOD) || roles.contains(Role.CONTROLLER)) && count(roles, ADMINISTRATION) > 0) {
+            return "Whoever approves timetables cannot also be an administrator or exam coordinator, "
                     + "who generate and publish them.";
         }
         return null;

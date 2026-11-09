@@ -8,7 +8,7 @@ public record ScheduleEntryResponse(
         long examinationId, String subjectCode, String subjectName, boolean heavy, String departmentCode, int durationMinutes,
         long slotId, LocalDate date, LocalTime start, LocalTime end, int students, List<Hall> halls, List<Conflict> conflicts) {
 
-    public record Hall(String code, String name, String building, int seats, int capacity) {
+    public record Hall(String code, String name, String building, int seats, int capacity, List<String> invigilators) {
     }
 
     /** Another paper in this timetable that shares students with this one. */

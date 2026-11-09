@@ -2,11 +2,13 @@ package com.slotforge.exam.service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import com.slotforge.audit.service.AuditService;
@@ -20,6 +22,7 @@ import com.slotforge.exam.entity.ExamSession;
 import com.slotforge.exam.entity.SessionStatus;
 import com.slotforge.exam.repository.ExamSessionRepository;
 import com.slotforge.exam.repository.TimeSlotRepository;
+import com.slotforge.schedule.validation.ScheduleValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -40,6 +43,8 @@ public class ExamSessionService {
     private final TimeSlotRepository slots;
     private final AuditService audit;
     private final JdbcClient jdbc;
+    private final ApprovalAuthority authority;
+    private final ScheduleValidator validator;
 
     @Transactional(readOnly = true)
     public PageResponse<ExamSessionResponse> search(String q, Pageable pageable) {
@@ -67,7 +72,7 @@ public class ExamSessionService {
     private SessionProgress progress(long id) {
         record Papers(int ready, Integer shortest) {
         }
-        record Latest(int number, String status, Integer placed, Integer total) {
+        record Latest(long id, int number, String status, Integer placed, Integer total) {
         }
         Papers papers = jdbc.sql("SELECT count(*), min(duration_minutes) FROM examination WHERE session_id = :session AND status = 'READY'")
                 .param("session", id).query((row, index) -> new Papers(row.getInt(1), row.getObject(2, Integer.class))).single();
@@ -75,23 +80,28 @@ public class ExamSessionService {
                 SELECT su.code || ' ' || su.name FROM examination x JOIN subject su ON su.id = x.subject_id
                 WHERE x.session_id = :session AND x.status = 'DRAFT' ORDER BY su.code""")
                 .param("session", id).query(String.class).list();
-        int openSlots = jdbc.sql("SELECT count(*) FROM time_slot WHERE session_id = :session AND status = 'OPEN' AND EXTRACT(ISODOW FROM slot_date) < 6")
-                .param("session", id).query(Integer.class).single();
+        int openSlots = jdbc.sql("SELECT count(*) FROM time_slot WHERE session_id = :session AND status = 'OPEN' AND EXTRACT(ISODOW FROM slot_date) < 6 AND slot_date + start_time > :now")
+                .param("session", id).param("now", now()).query(Integer.class).single();
         int tooShort = papers.shortest() == null ? 0 : jdbc.sql("""
                 SELECT count(*) FROM time_slot WHERE session_id = :session AND status = 'OPEN' AND EXTRACT(ISODOW FROM slot_date) < 6
+                  AND slot_date + start_time > :now
                   AND EXTRACT(EPOCH FROM (end_time - start_time)) / 60 < :minutes""")
-                .param("session", id).param("minutes", papers.shortest()).query(Integer.class).single();
+                .param("session", id).param("now", now()).param("minutes", papers.shortest()).query(Integer.class).single();
         Latest latest = jdbc.sql("""
-                SELECT v.version_no, v.status, r.exams_scheduled, r.exams_total
+                SELECT v.id, v.version_no, v.status, r.exams_scheduled, r.exams_total
                 FROM schedule_version v LEFT JOIN scheduling_run r ON r.id = v.source_run_id
                 WHERE v.session_id = :session ORDER BY v.version_no DESC LIMIT 1""")
                 .param("session", id)
-                .query((row, index) -> new Latest(row.getInt(1), row.getString(2), row.getObject(3, Integer.class), row.getObject(4, Integer.class)))
-                .optional().orElse(new Latest(0, null, null, null));
-        int approvers = jdbc.sql("SELECT count(*) FROM app_user u JOIN user_role r ON r.user_id = u.id WHERE r.role = 'HOD' AND u.status = 'ACTIVE'")
-                .query(Integer.class).single();
+                .query((row, index) -> new Latest(row.getLong(1), row.getInt(2), row.getString(3), row.getObject(4, Integer.class), row.getObject(5, Integer.class)))
+                .optional().orElse(new Latest(0, 0, null, null, null));
+        String inReview = jdbc.sql("SELECT status FROM schedule_version WHERE session_id = :session AND (status = 'REVIEWED' OR (status = 'DRAFT' AND submitted_at IS NOT NULL))")
+                .param("session", id).query(String.class).optional().orElse(null);
+        // Only a complete draft nobody has sent can be called ready, so only that one needs checking.
+        boolean sendable = "DRAFT".equals(latest.status()) && inReview == null && Objects.equals(latest.placed(), latest.total());
+        int latestProblems = sendable ? validator.problems(latest.id()).size() : 0;
+        ApprovalAuthority.Approver approver = authority.of(id);
         return new SessionProgress(openSlots, tooShort, papers.shortest(), papers.ready(), withoutStudents, latest.number(), latest.status(),
-                latest.placed(), latest.total(), approvers);
+                latest.placed(), latest.total(), inReview, latestProblems, approver.post(), approver.names(), approver.userIds());
     }
 
     @Transactional
@@ -136,6 +146,7 @@ public class ExamSessionService {
     /** Cancelling keeps the whole record but freezes it. Reopening is the only way back. */
     @Transactional
     public ExamSessionResponse changeStatus(Long actorId, Long id, SessionStatus target) {
+        lockRow(id);
         ExamSession session = find(id);
         boolean cancelling = session.getStatus() == SessionStatus.PLANNING && target == SessionStatus.CANCELLED;
         // A reopened published session keeps its timetable live until a new one is published.
@@ -153,6 +164,11 @@ public class ExamSessionService {
         return date.getDayOfWeek().getValue() >= DayOfWeek.SATURDAY.getValue();
     }
 
+    /** This moment at the institute, whatever zone the server runs in. */
+    public static LocalDateTime now() {
+        return LocalDateTime.now(INSTITUTE_ZONE);
+    }
+
     /** Today at the institute, whatever zone the server runs in. */
     public static LocalDate today() {
         return LocalDate.now(INSTITUTE_ZONE);
@@ -160,11 +176,17 @@ public class ExamSessionService {
 
     /** Timetabling inputs change only while a session is being planned, so stored history stays true. */
     public ExamSession requirePlanning(Long id) {
+        lockRow(id);
         ExamSession session = find(id);
         if (session.getStatus() != SessionStatus.PLANNING) {
             throw ApiException.conflict("SESSION_LOCKED", session.getName() + " is no longer being planned, so it cannot be changed.");
         }
         return session;
+    }
+
+    // Taken before the row is read, so a status change and any change to the session's inputs happen one after the other.
+    private void lockRow(Long id) {
+        jdbc.sql("SELECT id FROM exam_session WHERE id = :id FOR UPDATE").param("id", id).query(Long.class).optional();
     }
 
     private void apply(ExamSession session, ExamSessionRequest request) {

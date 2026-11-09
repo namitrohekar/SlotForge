@@ -68,7 +68,7 @@ class AcademicApiTest {
     @Test
     void teachingStaffCanReadDepartments() throws Exception {
         when(departments.search(eq(null), any())).thenReturn(new PageResponse<>(
-                List.of(new DepartmentResponse(1L, "CEIT", "Computer Engineering & Information Technology", 3, 12)), 0, 20, 1, 1));
+                List.of(new DepartmentResponse(1L, "CEIT", "Computer Engineering & Information Technology", 3, 12, null, null)), 0, 20, 1, 1));
 
         mvc.perform(get("/api/departments").with(authentication(signedIn(4L, Role.HOD))))
                 .andExpect(status().isOk())
@@ -91,11 +91,23 @@ class AcademicApiTest {
     @Test
     void anAdministratorCanChangeItAsACoordinator() throws Exception {
         when(departments.create(eq(1L), any()))
-                .thenReturn(new DepartmentResponse(9L, "CEIT", "Computer Engineering & Information Technology", 0, 0));
+                .thenReturn(new DepartmentResponse(9L, "CEIT", "Computer Engineering & Information Technology", 0, 0, null, null));
 
         mvc.perform(post("/api/departments").with(csrf()).with(authentication(signedIn(1L, Role.ADMIN)))
                         .contentType(MediaType.APPLICATION_JSON).content(DEPARTMENT))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void onlyAnAdministratorAppointsAHead() throws Exception {
+        for (Role role : List.of(Role.EXAM_COORDINATOR, Role.HOD)) {
+            mvc.perform(put("/api/departments/1/head").with(csrf()).with(authentication(signedIn(2L, role)))
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"userId\":3}"))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(put("/api/departments/1/head").with(csrf()).with(authentication(signedIn(1L, Role.ADMIN)))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"userId\":3}"))
+                .andExpect(status().isOk());
     }
 
     @Test

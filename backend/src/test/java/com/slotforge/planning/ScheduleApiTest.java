@@ -95,6 +95,14 @@ class ScheduleApiTest {
     }
 
     @Test
+    void onlyCoordinatorsSendForApproval() throws Exception {
+        mvc.perform(post("/api/schedule-versions/1/submit").with(csrf()).with(authentication(signedIn(3L, Role.HOD))))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/schedule-versions/1/submit").with(csrf()).with(authentication(signedIn(2L, Role.EXAM_COORDINATOR))))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void onlyAHeadOfDepartmentApproves() throws Exception {
         for (Role role : List.of(Role.ADMIN, Role.EXAM_COORDINATOR, Role.FACULTY)) {
             mvc.perform(post("/api/schedule-versions/1/review").with(csrf()).with(authentication(signedIn(1L, role))))
@@ -109,6 +117,14 @@ class ScheduleApiTest {
         mvc.perform(get("/api/schedule-versions/awaiting-approval").with(authentication(signedIn(3L, Role.HOD))))
                 .andExpect(status().isOk());
         mvc.perform(get("/api/schedule-versions/awaiting-approval").with(authentication(signedIn(2L, Role.EXAM_COORDINATOR))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void dutiesAtRiskAreForCoordinators() throws Exception {
+        mvc.perform(get("/api/schedule-versions/duties-at-risk").with(authentication(signedIn(2L, Role.EXAM_COORDINATOR))))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/schedule-versions/duties-at-risk").with(authentication(signedIn(3L, Role.HOD))))
                 .andExpect(status().isForbidden());
     }
 

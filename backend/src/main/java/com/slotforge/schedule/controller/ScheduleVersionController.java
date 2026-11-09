@@ -5,6 +5,7 @@ import java.util.List;
 import com.slotforge.auth.security.Access;
 import com.slotforge.auth.security.AppPrincipal;
 import com.slotforge.schedule.dto.AwaitingApprovalResponse;
+import com.slotforge.schedule.dto.DutyAtRiskResponse;
 import com.slotforge.schedule.dto.ReturnRequest;
 import com.slotforge.schedule.dto.ScheduleEntryResponse;
 import com.slotforge.schedule.dto.VersionResponse;
@@ -41,8 +42,14 @@ public class ScheduleVersionController {
 
     @GetMapping("/api/schedule-versions/awaiting-approval")
     @PreAuthorize(Access.HOD)
-    public List<AwaitingApprovalResponse> awaitingApproval() {
-        return schedules.awaitingApproval();
+    public List<AwaitingApprovalResponse> awaitingApproval(@AuthenticationPrincipal AppPrincipal actor) {
+        return schedules.awaitingApproval(actor.id());
+    }
+
+    @GetMapping("/api/schedule-versions/duties-at-risk")
+    @PreAuthorize(Access.COORDINATOR)
+    public List<DutyAtRiskResponse> dutiesAtRisk() {
+        return schedules.dutiesAtRisk();
     }
 
     @GetMapping("/api/schedule-versions/{id}/entries")
@@ -55,6 +62,13 @@ public class ScheduleVersionController {
     @PreAuthorize(Access.STUDENT_RECORDS)
     public List<String> violations(@PathVariable Long id) {
         return validator.problems(id);
+    }
+
+    @PostMapping("/api/schedule-versions/{id}/submit")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(Access.COORDINATOR)
+    public void submit(@AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id) {
+        workflow.submit(actor.id(), id);
     }
 
     @PostMapping("/api/schedule-versions/{id}/review")

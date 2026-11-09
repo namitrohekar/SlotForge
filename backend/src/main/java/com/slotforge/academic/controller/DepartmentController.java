@@ -1,5 +1,6 @@
 package com.slotforge.academic.controller;
 
+import com.slotforge.academic.dto.AppointHeadRequest;
 import com.slotforge.academic.dto.DepartmentRequest;
 import com.slotforge.academic.dto.DepartmentResponse;
 import com.slotforge.academic.service.DepartmentService;
@@ -55,6 +56,14 @@ public class DepartmentController {
     public DepartmentResponse update(
             @AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id, @Valid @RequestBody DepartmentRequest body) {
         return service.update(actor.id(), id, body);
+    }
+
+    // Administrators only: a coordinator must not be able to pick who approves their timetable.
+    @PutMapping("/api/departments/{id}/head")
+    @PreAuthorize("hasRole('ADMIN')")
+    public DepartmentResponse appointHead(
+            @AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id, @RequestBody AppointHeadRequest body) {
+        return service.appointHead(actor.id(), id, body.userId());
     }
 
     @DeleteMapping("/api/departments/{id}")

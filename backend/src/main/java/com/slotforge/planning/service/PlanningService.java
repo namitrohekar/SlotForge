@@ -49,7 +49,7 @@ public class PlanningService {
             throw ApiException.unprocessable("NOTHING_TO_SCHEDULE", "No paper has students yet. Add papers and enrol students first.");
         }
         if (problem.slots().stream().noneMatch(SlotInfo::open)) {
-            throw ApiException.unprocessable("NO_OPEN_SLOTS", "This session has no open time slots. Generate slots first.");
+            throw ApiException.unprocessable("NO_OPEN_SLOTS", "This session has no open time slots left. Generate more slots first.");
         }
         if (problem.halls().isEmpty()) {
             throw ApiException.unprocessable("NO_HALLS", "No hall is available. Add a hall or mark one Available first.");

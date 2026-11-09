@@ -13,6 +13,7 @@ import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
 
+import com.slotforge.academic.service.DepartmentService;
 import com.slotforge.audit.service.AuditService;
 import com.slotforge.auth.dto.CreateUserRequest;
 import com.slotforge.auth.entity.AppUser;
@@ -45,11 +46,14 @@ class UserServiceTest {
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private JdbcClient jdbc;
 
+    @Mock
+    private DepartmentService departments;
+
     private UserService service;
 
     @BeforeEach
     void setUp() {
-        service = new UserService(users, audit, jdbc);
+        service = new UserService(users, audit, jdbc, departments);
     }
 
     @Test

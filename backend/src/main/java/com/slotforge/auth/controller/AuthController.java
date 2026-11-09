@@ -21,7 +21,7 @@ public class AuthController {
     @PreAuthorize("permitAll()")
     public AuthOptionsResponse options(CsrfToken csrfToken) {
         csrfToken.getToken();
-        return new AuthOptionsResponse(false, environment.matchesProfiles("local & !prod"));
+        return new AuthOptionsResponse(environment.matchesProfiles("google"), environment.matchesProfiles("local & !prod"));
     }
 
     @GetMapping("/api/auth/me")

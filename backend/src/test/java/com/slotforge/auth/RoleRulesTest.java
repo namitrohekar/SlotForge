@@ -43,6 +43,9 @@ class RoleRulesTest {
     void theReviewerCannotAlsoPublish() {
         assertThat(RoleRules.problem(Set.of(Role.HOD, Role.ADMIN))).isNotNull();
         assertThat(RoleRules.problem(Set.of(Role.HOD, Role.EXAM_COORDINATOR))).isNotNull();
+        assertThat(RoleRules.problem(Set.of(Role.CONTROLLER, Role.ADMIN))).isNotNull();
+        assertThat(RoleRules.problem(Set.of(Role.CONTROLLER, Role.EXAM_COORDINATOR))).isNotNull();
+        assertThat(RoleRules.problem(Set.of(Role.CONTROLLER, Role.HOD))).isNotNull();
     }
 
     @Test

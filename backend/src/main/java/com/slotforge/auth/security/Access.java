@@ -15,6 +15,9 @@ public final class Access {
     /** May see the student roster. */
     public static final String STUDENT_RECORDS = "hasAnyRole('ADMIN', 'EXAM_COORDINATOR', 'HOD')";
 
+    /** Staff who can be given invigilation duties. A head of department inherits this through faculty. */
+    public static final String INVIGILATORS = "hasAnyRole('FACULTY', 'INVIGILATOR')";
+
     /** May see halls: all staff, including non-teaching invigilators. */
     public static final String HALL_READERS = "hasAnyRole('ADMIN', 'EXAM_COORDINATOR', 'HOD', 'FACULTY', 'INVIGILATOR')";
 

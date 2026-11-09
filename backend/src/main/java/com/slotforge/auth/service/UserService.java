@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.slotforge.academic.service.DepartmentService;
 import com.slotforge.audit.service.AuditService;
 import com.slotforge.auth.dto.CreateUserRequest;
 import com.slotforge.auth.dto.UserResponse;
@@ -37,6 +38,7 @@ public class UserService {
     private final AppUserRepository users;
     private final AuditService audit;
     private final JdbcClient jdbc;
+    private final DepartmentService departments;
 
     @Transactional(readOnly = true)
     public PageResponse<UserResponse> search(String q, Role role, UserStatus status, Pageable pageable) {
@@ -93,6 +95,7 @@ public class UserService {
         if (user.isActive() && user.getRoles().contains(Role.ADMIN) && !roles.contains(Role.ADMIN)) {
             requireAnotherAdmin(id);
         }
+        if (user.getRoles().contains(Role.HOD) && !roles.contains(Role.HOD)) departments.vacateHead(actorId, id);
         user.getRoles().clear();
         user.getRoles().addAll(roles);
         audit.record(actorId, "USER_ROLES_CHANGED", "app_user", id, rolesJson(roles));
@@ -105,6 +108,7 @@ public class UserService {
         AppUser user = find(id);
         if (!user.isActive()) return UserResponse.from(user);
         if (user.getRoles().contains(Role.ADMIN)) requireAnotherAdmin(id);
+        if (user.getRoles().contains(Role.HOD)) departments.vacateHead(actorId, id);
         user.setStatus(UserStatus.DEACTIVATED);
         audit.record(actorId, "USER_DEACTIVATED", "app_user", id, null);
         return UserResponse.from(user);

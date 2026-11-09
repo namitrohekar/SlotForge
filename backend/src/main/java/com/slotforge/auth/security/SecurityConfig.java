@@ -1,6 +1,7 @@
 package com.slotforge.auth.security;
 
 import com.slotforge.auth.repository.AppUserRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -23,12 +24,19 @@ public class SecurityConfig {
     static RoleHierarchy roleHierarchy() {
         return RoleHierarchyImpl.fromHierarchy("""
                 ROLE_ADMIN > ROLE_EXAM_COORDINATOR
+                ROLE_CONTROLLER > ROLE_HOD
                 ROLE_HOD > ROLE_FACULTY
                 """);
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, AppUserRepository users) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, AppUserRepository users, ObjectProvider<GoogleLoginHandler> google)
+            throws Exception {
+        GoogleLoginHandler googleLogin = google.getIfAvailable();
+        if (googleLogin != null) {
+            // The React app owns /login, so Spring must not generate its own page there.
+            http.oauth2Login(login -> login.loginPage("/login").successHandler(googleLogin).failureHandler(googleLogin));
+        }
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/options", "/api/auth/demo-users", "/api/auth/demo-login").permitAll()

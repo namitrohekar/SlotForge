@@ -1,18 +1,23 @@
 package com.slotforge.schedule.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.slotforge.audit.service.AuditService;
+import com.slotforge.exam.service.ExamSessionService;
 import com.slotforge.planning.dto.RunReport;
+import com.slotforge.planning.allocation.InvigilatorAllocator;
 import com.slotforge.planning.dto.RunResponse;
 import com.slotforge.planning.model.ExamNode;
 import com.slotforge.planning.model.HallInfo;
 import com.slotforge.planning.model.HallSeats;
 import com.slotforge.planning.model.PlanResult;
+import com.slotforge.planning.model.SlotInfo;
 import com.slotforge.planning.service.ProblemLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -30,9 +35,12 @@ public class PlanPersister {
     private final JdbcTemplate batch;
     private final JsonMapper json;
     private final AuditService audit;
+    private final ExamSessionService sessions;
 
     @Transactional
     public RunResponse save(long runId, long sessionId, long actorId, ProblemLoader.Snapshot snapshot, PlanResult plan, long durationMs) {
+        // Solving runs outside any transaction, so the session may have been cancelled in the meantime.
+        sessions.requirePlanning(sessionId);
         int total = snapshot.problem().exams().size();
         int placed = plan.slotByExam().size();
         int slotsUsed = new HashSet<>(plan.slotByExam().values()).size();
@@ -41,7 +49,8 @@ public class PlanPersister {
         Long versionId = null;
         Integer versionNo = null;
         if (placed > 0) {
-            versionNo = jdbc.sql("SELECT COALESCE(max(version_no), 0) + 1 FROM schedule_version WHERE session_id = :session")
+            // Counted from runs, which outlive a deleted draft, so a number never comes back.
+            versionNo = jdbc.sql("SELECT count(*) + 1 FROM scheduling_run WHERE session_id = :session AND status IN ('SUCCEEDED', 'PARTIAL')")
                     .param("session", sessionId).query(Integer.class).single();
             versionId = jdbc.sql("""
                     INSERT INTO schedule_version (session_id, version_no, source_run_id, created_by)
@@ -69,6 +78,7 @@ public class PlanPersister {
     private void writeEntries(long versionId, ProblemLoader.Snapshot snapshot, PlanResult plan) {
         Map<Long, Integer> capacity = snapshot.problem().halls().stream().collect(Collectors.toMap(HallInfo::id, HallInfo::capacity));
         List<Object[]> seats = new ArrayList<>();
+        List<InvigilatorAllocator.Duty> duties = new ArrayList<>();
         for (ExamNode exam : snapshot.problem().exams()) {
             Long slotId = plan.slotByExam().get(exam.id());
             if (slotId == null) continue;
@@ -90,10 +100,31 @@ public class PlanPersister {
                     seats.add(new Object[] {scheduleId, exam.id(), allocationId, student});
                 }
                 seated += hall.seats();
+                duties.add(new InvigilatorAllocator.Duty(allocationId, slotId, InvigilatorAllocator.needed(hall.seats(), snapshot.studentsPerInvigilator())));
             }
         }
         batch.batchUpdate("""
                 INSERT INTO student_hall_assignment (exam_schedule_id, examination_id, hall_allocation_id, student_id)
                 VALUES (?, ?, ?, ?)""", seats);
+        writeInvigilators(versionId, snapshot, duties);
+    }
+
+    private void writeInvigilators(long versionId, ProblemLoader.Snapshot snapshot, List<InvigilatorAllocator.Duty> duties) {
+        Map<Long, SlotInfo> slots = snapshot.problem().slots().stream().collect(Collectors.toMap(SlotInfo::id, Function.identity()));
+        List<InvigilatorAllocator.Duty> inOrder = duties.stream()
+                .sorted(Comparator.comparing((InvigilatorAllocator.Duty duty) -> slots.get(duty.slotId()).date())
+                        .thenComparing(duty -> slots.get(duty.slotId()).start())
+                        .thenComparingLong(InvigilatorAllocator.Duty::key))
+                .toList();
+        Map<Long, List<Long>> assigned = InvigilatorAllocator.allocate(inOrder, snapshot.invigilators(), snapshot.maxDuties());
+        List<Object[]> rows = new ArrayList<>();
+        for (InvigilatorAllocator.Duty duty : inOrder) {
+            for (long person : assigned.get(duty.key())) {
+                rows.add(new Object[] {duty.key(), versionId, duty.slotId(), person});
+            }
+        }
+        batch.batchUpdate("""
+                INSERT INTO invigilator_assignment (hall_allocation_id, version_id, time_slot_id, user_id)
+                VALUES (?, ?, ?, ?)""", rows);
     }
 }

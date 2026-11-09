@@ -14,7 +14,7 @@ class SchemaVersionCheckTest {
     private SchemaVersionCheck check(int actual, int required) {
         HealthService health = mock(HealthService.class);
         when(health.read()).thenReturn(new HealthResponse("UP", "slotforge", "18.6", actual, required));
-        return new SchemaVersionCheck(health, new SlotForgeProperties("origin", new SlotForgeProperties.Schema(required)));
+        return new SchemaVersionCheck(health, new SlotForgeProperties("origin", new SlotForgeProperties.Schema(required), null));
     }
 
     @Test

@@ -12,6 +12,9 @@ import com.slotforge.academic.repository.CourseRepository;
 import com.slotforge.academic.repository.DepartmentRepository;
 import com.slotforge.academic.repository.SubjectRepository;
 import com.slotforge.audit.service.AuditService;
+import com.slotforge.auth.entity.AppUser;
+import com.slotforge.auth.entity.Role;
+import com.slotforge.auth.repository.AppUserRepository;
 import com.slotforge.common.exception.ApiException;
 import com.slotforge.common.persistence.QuerySupport;
 import com.slotforge.common.response.PageResponse;
@@ -34,6 +37,7 @@ public class DepartmentService {
     private final CourseRepository courses;
     private final SubjectRepository subjects;
     private final AuditService audit;
+    private final AppUserRepository users;
 
     @Transactional(readOnly = true)
     public PageResponse<DepartmentResponse> search(String q, Pageable pageable) {
@@ -72,6 +76,23 @@ public class DepartmentService {
         apply(department, request);
         audit.record(actorId, "DEPARTMENT_UPDATED", "department", id, codeJson(department));
         return withCounts(department);
+    }
+
+    @Transactional
+    public DepartmentResponse appointHead(Long actorId, Long id, Long userId) {
+        Department department = find(id);
+        AppUser head = userId == null ? null : users.findById(userId)
+                .filter(candidate -> candidate.isActive() && candidate.getRoles().contains(Role.HOD))
+                .orElseThrow(() -> ApiException.unprocessable("NOT_A_HEAD", "Only an active account with the Head of department role can be appointed."));
+        department.setHead(head);
+        audit.record(actorId, "DEPARTMENT_HEAD_CHANGED", "department", id, "{\"head\":" + userId + "}");
+        return withCounts(department);
+    }
+
+    /** Someone who stops being a head stops approving at once. The page then says the post is vacant. */
+    @Transactional
+    public void vacateHead(Long actorId, Long userId) {
+        if (departments.vacateHead(userId) > 0) audit.record(actorId, "DEPARTMENT_HEAD_VACATED", "app_user", userId, null);
     }
 
     @Transactional
