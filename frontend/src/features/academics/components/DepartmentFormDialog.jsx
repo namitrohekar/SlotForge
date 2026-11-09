@@ -49,7 +49,7 @@ export default function DepartmentFormDialog({ department, onClose, onSaved }) {
         <FormField label="Name" required error={errors.name}>
           <Input {...field('name')} maxLength={150} placeholder="Computer Engineering & Information Technology" />
         </FormField>
-        <FormField label="Code" required hint="The short form used on timetables, such as CEIT." error={errors.code}>
+        <FormField label="Code" required hint="The short form used on timetables, such as CEIT" error={errors.code}>
           <Input {...field('code')} maxLength={20} autoCapitalize="characters" spellCheck={false} className="uppercase" />
         </FormField>
       </form>

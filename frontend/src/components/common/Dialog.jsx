@@ -46,7 +46,7 @@ export default function Dialog({ open, onClose, title, description, footer, chil
           <span aria-hidden="true" className="sf-grabber" />
           <header className="flex items-start justify-between gap-4 px-6 pt-5 pb-3">
             <div className="min-w-0">
-              <h2 id={titleId} className="font-serif text-title-2 font-medium">
+              <h2 id={titleId} className="text-title-2">
                 {title}
               </h2>
               {description && (

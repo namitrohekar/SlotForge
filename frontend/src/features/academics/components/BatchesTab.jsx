@@ -80,7 +80,7 @@ export default function BatchesTab() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Batches"
           columns={columns}
@@ -95,7 +95,7 @@ export default function BatchesTab() {
             <EmptyState
               icon={UsersRound}
               title={filtered ? 'No batches match' : 'No batches yet'}
-              description={filtered ? 'Try another name or programme.' : 'A batch is the students admitted together under one curriculum.'}
+              description={filtered ? 'Try another name or programme' : 'A batch is the students admitted together under one curriculum'}
             />
           }
         />

@@ -69,7 +69,7 @@ export default function SessionFormDialog({ session, onClose, onSaved }) {
       description={
         editing
           ? 'Slots, papers and timetables are managed inside the session and are not changed here. New rules apply the next time you generate.'
-          : 'You will add its slots and papers next.'
+          : 'You will add its slots and papers next'
       }
       footer={
         <>

@@ -31,7 +31,7 @@ const columns = [
       </span>
     ),
   },
-  { key: 'code', header: 'Code', sortable: true },
+  { key: 'code', header: 'Code', sortable: true, mono: true },
   { key: 'departmentName', header: 'Taught by', priority: 'low' },
   {
     key: 'curriculumCount',
@@ -95,7 +95,7 @@ export default function SubjectsTab() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Subjects"
           columns={columns}
@@ -112,8 +112,8 @@ export default function SubjectsTab() {
               title={filtered ? 'No subjects match' : 'No subjects yet'}
               description={
                 filtered
-                  ? 'Try another name, code or department.'
-                  : 'A subject is one paper, owned by the department that teaches it.'
+                  ? 'Try another name, code or department'
+                  : 'A subject is one paper, owned by the department that teaches it'
               }
             />
           }

@@ -4,58 +4,59 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  --sf-canvas: #F5F5F7;
-  --sf-surface: #FFFFFF;
+  --sf-canvas: #F5F3EF;
+  --sf-surface: #FBFAF8;
   --sf-raised: #FFFFFF;
-  --sf-sunken: #EFEFF2;
+  --sf-sunken: #EFECE6;
 
-  --sf-ink: #1D1D1F;
-  --sf-ink-secondary: #55555C;
-  --sf-ink-tertiary: #6B6B73;
+  --sf-ink: #1C1B19;
+  --sf-ink-secondary: #5A5750;
+  --sf-ink-tertiary: #67635B;
 
-  --sf-line: #E3E3E8;
-  --sf-line-strong: #86868F;
+  --sf-line: #E5E2DB;
+  --sf-line-strong: #8A867D;
 
-  --sf-accent: #1F5FD6;
-  --sf-accent-hover: #1A51B8;
-  --sf-accent-subtle: #E7EEFC;
-  --sf-on-accent: #FFFFFF;
-  --sf-focus: #1F5FD6;
+  /* Actions are ink. Brass is the only colour in the chrome, and only ever marks where you are. */
+  --sf-accent: #1C1B19;
+  --sf-accent-hover: #3A3833;
+  --sf-accent-subtle: #EFECE6;
+  --sf-on-accent: #FBFAF8;
+  --sf-tick: #8F6E32;
+  --sf-focus: #8F6E32;
 
-  --sf-success: #17733F;
-  --sf-success-subtle: #E3F4EA;
-  --sf-warning: #8A5A00;
-  --sf-warning-subtle: #FBF0DA;
-  --sf-danger: #C2281F;
-  --sf-danger-hover: #A5211A;
-  --sf-danger-subtle: #FCE9E7;
+  --sf-success: #2F6B4A;
+  --sf-success-subtle: #EAF0EA;
+  --sf-warning: #7C5A1C;
+  --sf-warning-subtle: #F5EEDF;
+  --sf-danger: #A3362B;
+  --sf-danger-hover: #8A2C23;
+  --sf-danger-subtle: #F7E9E6;
   --sf-on-danger: #FFFFFF;
-  --sf-info: #1F5FD6;
-  --sf-info-subtle: #E7EEFC;
+  --sf-info: #5A5750;
+  --sf-info-subtle: #EFECE6;
 
-  --sf-backdrop: rgb(15 15 18 / 0.4);
-  --sf-shadow-1: 0 1px 2px rgb(0 0 0 / 0.05), 0 6px 16px rgb(0 0 0 / 0.08);
-  --sf-shadow-2: 0 2px 6px rgb(0 0 0 / 0.06), 0 18px 44px rgb(0 0 0 / 0.14);
+  --sf-backdrop: rgb(28 27 25 / 0.32);
+  --sf-shadow-1: 0 1px 2px rgb(28 27 25 / 0.04), 0 6px 16px rgb(28 27 25 / 0.06);
+  --sf-shadow-2: 0 2px 6px rgb(28 27 25 / 0.05), 0 16px 40px rgb(28 27 25 / 0.1);
 
   --duration-fast: 120ms;
-  --duration-base: 200ms;
+  --duration-base: 180ms;
   --duration-slow: 320ms;
 
-  /* Springs as CSS curves, sampled from damping and response. A CSS transition
-     restarts from the on-screen value when interrupted, so these stay reversible. */
-  --spring-move: linear(0, 0.019 2.4%, 0.098 6%, 0.231 10.4%, 0.385 15.4%, 0.539 20.8%, 0.671 26.6%, 0.774 32.8%, 0.853 39.2%, 0.906 46%, 0.942 53%, 0.966 60.3%, 0.98 67.8%, 0.989 75.6%, 0.994 83.5%, 0.997 91.7%, 1);
-  --spring-move-duration: 550ms;
-  --spring-sheet: linear(0, 0.017 2.4%, 0.095 6%, 0.231 10.4%, 0.403 15.4%, 0.576 20.8%, 0.731 26.6%, 0.85 32.8%, 0.93 39.2%, 0.98 46%, 1.005 53%, 1.014 60.3%, 1.014 67.8%, 1.011 75.6%, 1.007 83.5%, 1.004 91.7%, 1);
-  --spring-sheet-duration: 390ms;
-  --spring-snap: linear(0, 0.021 2.4%, 0.102 6%, 0.238 10.4%, 0.397 15.4%, 0.551 20.8%, 0.68 26.6%, 0.783 32.8%, 0.86 39.2%, 0.912 46%, 0.946 53%, 0.968 60.3%, 0.982 67.8%, 0.99 75.6%, 0.994 83.5%, 0.997 91.7%, 1);
-  --spring-snap-duration: 350ms;
+  /* One curve everywhere, with no overshoot. A CSS transition restarts from the on-screen value when interrupted. */
+  --spring-move: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring-move-duration: 320ms;
+  --spring-sheet: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring-sheet-duration: 320ms;
+  --spring-snap: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring-snap-duration: 180ms;
 
   --control-height: 2.25rem;
-  --sidebar-width: 15.5rem;
+  --sidebar-width: 15rem;
   --rail-width: 4.5rem;
   --topbar-height: 3.5rem;
   --tabbar-height: 3.5rem;
-  --content-max: 72rem;
+  --content-max: 76rem;
   --reading-max: 45rem;
 }
 
@@ -63,38 +64,39 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --sf-canvas: #0F0F12;
-  --sf-surface: #18181C;
-  --sf-raised: #212126;
-  --sf-sunken: #131316;
+  --sf-canvas: #100F0E;
+  --sf-surface: #141311;
+  --sf-raised: #1F1D1B;
+  --sf-sunken: #1C1A18;
 
-  --sf-ink: #F5F5F7;
-  --sf-ink-secondary: #B6B6BE;
-  --sf-ink-tertiary: #94949D;
+  --sf-ink: #F2EFE9;
+  --sf-ink-secondary: #B8B3A9;
+  --sf-ink-tertiary: #969187;
 
-  --sf-line: #2C2C33;
-  --sf-line-strong: #7A7A84;
+  --sf-line: #2C2A26;
+  --sf-line-strong: #7E7A71;
 
-  --sf-accent: #6AA5FF;
-  --sf-accent-hover: #8BBAFF;
-  --sf-accent-subtle: #1B2A45;
-  --sf-on-accent: #0B1424;
-  --sf-focus: #8BBAFF;
+  --sf-accent: #F2EFE9;
+  --sf-accent-hover: #DAD6CE;
+  --sf-accent-subtle: #25231F;
+  --sf-on-accent: #141311;
+  --sf-tick: #C9A96E;
+  --sf-focus: #C9A96E;
 
-  --sf-success: #4FC98A;
-  --sf-success-subtle: #14301F;
-  --sf-warning: #E7B85C;
-  --sf-warning-subtle: #33280F;
-  --sf-danger: #FF8A80;
-  --sf-danger-hover: #FFA39B;
-  --sf-danger-subtle: #3A1A18;
-  --sf-on-danger: #2B0B08;
-  --sf-info: #6AA5FF;
-  --sf-info-subtle: #1B2A45;
+  --sf-success: #8FBF9F;
+  --sf-success-subtle: #1B241E;
+  --sf-warning: #D9B36C;
+  --sf-warning-subtle: #2A2418;
+  --sf-danger: #E08B80;
+  --sf-danger-hover: #EBA49B;
+  --sf-danger-subtle: #2D1C19;
+  --sf-on-danger: #1A0E0B;
+  --sf-info: #B8B3A9;
+  --sf-info-subtle: #25231F;
 
-  --sf-backdrop: rgb(0 0 0 / 0.6);
-  --sf-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.3), inset 0 0 0 1px rgb(255 255 255 / 0.04);
-  --sf-shadow-2: 0 2px 6px rgb(0 0 0 / 0.35), 0 18px 44px rgb(0 0 0 / 0.45), inset 0 0 0 1px rgb(255 255 255 / 0.05);
+  --sf-backdrop: rgb(0 0 0 / 0.55);
+  --sf-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px rgb(0 0 0 / 0.28);
+  --sf-shadow-2: 0 2px 6px rgb(0 0 0 / 0.32), 0 16px 40px rgb(0 0 0 / 0.42);
 }
 
 @media (pointer: coarse) {

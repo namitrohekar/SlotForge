@@ -98,7 +98,7 @@ export default function UsersPage() {
     <>
       <PageHeader
         title="Users"
-        description="Who can sign in, and what each person may do."
+        description="Who can sign in, and what each person may do"
         actions={
           <Button icon={Plus} onClick={() => setForm({ user: null })}>
             Add user
@@ -123,7 +123,7 @@ export default function UsersPage() {
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Users"
           columns={columns}
@@ -135,7 +135,7 @@ export default function UsersPage() {
           onSort={setSort}
           actions={actions}
           inactiveRow={(user) => user.status !== 'ACTIVE'}
-          empty={<EmptyState icon={Users} title="No users match" description="Try another name, role or status." />}
+          empty={<EmptyState icon={Users} title="No users match" description="Try another name, role or status" />}
         />
       </div>
       {data && <Pagination page={data.page} totalPages={data.totalPages} totalItems={data.totalItems} onChange={setPage} />}
@@ -158,7 +158,7 @@ export default function UsersPage() {
       <ConfirmDialog
         open={Boolean(reactivating)}
         title={`Reactivate ${reactivating?.fullName ?? ''}?`}
-        message={`They can sign in again as ${reactivating ? roleSummary(reactivating.roles) : ''}, and their account becomes editable.`}
+        message={`They can sign in again as ${reactivating ? roleSummary(reactivating.roles) : ''}, and their account becomes editable`}
         confirmLabel="Reactivate"
         variant="primary"
         loading={busy}

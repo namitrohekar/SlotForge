@@ -15,26 +15,29 @@ export default function ExamCard({ entry, tone, shared, onOpen, onFocusChange })
       onClick={() => onOpen(entry)}
       onMouseEnter={() => onFocusChange?.(entry.examinationId)}
       onFocus={() => onFocusChange?.(entry.examinationId)}
-      className={`sf-press block w-full rounded-md border bg-surface p-3 text-left transition-opacity duration-(--duration-fast) [--press-scale:0.99] ${
-        shared ? 'border-accent' : 'border-line hover:border-line-strong'
-      } ${tone === 'rest' ? 'opacity-40' : ''}`}
+      className={`@container relative block w-full px-3 py-3 text-left transition-[background-color,opacity] duration-(--duration-fast) -outline-offset-2 hover:bg-sunken ${
+        tone === 'rest' ? 'opacity-40' : ''
+      }`}
     >
-      <span className="flex items-center justify-between gap-2">
-        <span data-numeric className="text-caption text-ink-tertiary">
-          {entry.subjectCode}
+      {shared && <span aria-hidden="true" className="absolute inset-y-3 left-0 w-0.5 bg-tick" />}
+      <span className="flex flex-col gap-1 @lg:flex-row @lg:items-baseline @lg:justify-between @lg:gap-6">
+        <span className="min-w-0">
+          <span className="flex items-center justify-between gap-2 @lg:justify-start">
+            <span className="font-mono text-caption text-ink-tertiary">{entry.subjectCode}</span>
+            {entry.heavy && <HeavyBadge />}
+          </span>
+          <span className="mt-0.5 line-clamp-2 text-callout font-medium text-ink">{entry.subjectName}</span>
         </span>
-        {entry.heavy && <HeavyBadge />}
+        {shared ? (
+          <span data-numeric className="block text-footnote text-ink @lg:shrink-0">
+            Shares {shared} {shared === 1 ? 'student' : 'students'}
+          </span>
+        ) : (
+          <span data-numeric className="block truncate text-footnote text-ink-secondary @lg:shrink-0">
+            {entry.students} students · {hallSummary(entry.halls)} · {invigilators} {invigilators === 1 ? 'invigilator' : 'invigilators'}
+          </span>
+        )}
       </span>
-      <span className="mt-0.5 line-clamp-2 text-callout font-medium text-ink">{entry.subjectName}</span>
-      {shared ? (
-        <span data-numeric className="mt-1 block text-footnote text-accent">
-          Shares {shared} {shared === 1 ? 'student' : 'students'}
-        </span>
-      ) : (
-        <span data-numeric className="mt-1 block truncate text-footnote text-ink-secondary">
-          {entry.students} students · {hallSummary(entry.halls)} · {invigilators} {invigilators === 1 ? 'invigilator' : 'invigilators'}
-        </span>
-      )}
     </button>
   )
 }

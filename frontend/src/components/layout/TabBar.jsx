@@ -23,12 +23,12 @@ export default function TabBar() {
     <>
       <nav
         aria-label="Main"
-        className="sf-material fixed inset-x-0 bottom-0 z-30 flex border-t border-line pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="sf-bar fixed inset-x-0 bottom-0 z-30 flex border-t border-line pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {active >= 0 && (
           <span
             aria-hidden="true"
-            className="sf-move absolute top-0 left-0 h-0.5 bg-accent"
+            className="sf-move absolute top-0 left-0 h-0.5 bg-tick"
             style={{ width: `${100 / slots}%`, transform: `translateX(${active * 100}%)` }}
           />
         )}
@@ -39,13 +39,13 @@ export default function TabBar() {
             end={to === '/'}
             className={({ isActive }) => `${tabStyles} ${isActive ? 'font-medium text-ink' : 'text-ink-secondary'}`}
           >
-            <Icon size={22} aria-hidden="true" />
+            <Icon size={20} aria-hidden="true" />
             {label}
           </NavLink>
         ))}
         {needsMore && (
           <button type="button" onClick={() => setMoreOpen(true)} className={`${tabStyles} text-ink-secondary`}>
-            <Ellipsis size={22} aria-hidden="true" />
+            <Ellipsis size={20} aria-hidden="true" />
             More
           </button>
         )}

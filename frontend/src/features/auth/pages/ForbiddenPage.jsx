@@ -10,8 +10,8 @@ export default function ForbiddenPage() {
       <EmptyState
         icon={Lock}
         title="Your role cannot open this page"
-        description="If you need it, ask an administrator to change your roles."
-        action={<Link to="/" className="text-callout font-medium text-accent hover:underline">Go to the dashboard</Link>}
+        description="If you need it, ask an administrator to change your roles"
+        action={<Link to="/" className="text-callout font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">Go to the dashboard</Link>}
       />
     </>
   )

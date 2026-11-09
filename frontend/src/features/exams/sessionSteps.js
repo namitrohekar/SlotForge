@@ -1,12 +1,5 @@
 import { formatDuration } from '../../utils/format.js'
 
-export const STEP_MARKS = {
-  done: 'bg-accent text-on-accent',
-  current: 'border border-accent text-accent',
-  attention: 'bg-warning-subtle text-warning',
-  todo: 'border border-line-strong text-ink-tertiary',
-}
-
 /** "Dr Rao, Head of MCA", or just the post while it is vacant. */
 export const approverLabel = ({ approverName, approverPost }) => (approverName ? `${approverName}, ${approverPost}` : approverPost)
 
@@ -44,22 +37,22 @@ export function nextStep(session, { isCoordinator, userId }) {
   if (session.status !== 'PLANNING') return null
   const { openSlots, slotsTooShort, shortestPaperMinutes, readyPapers, latestVersionNo, latestVersionStatus, latestPlaced, latestTotal, inReviewStatus, latestProblems, approverIds } = session.progress
   if (isCoordinator) {
-    if (openSlots === 0) return { to: 'slots', message: 'Start by adding the time slots for this session.', action: 'Go to time slots' }
-    if (readyPapers === 0) return { to: 'examinations', message: 'Next, add the papers students will sit.', action: 'Go to papers' }
+    if (openSlots === 0) return { to: 'slots', message: 'Start by adding the time slots for this session', action: 'Go to time slots' }
+    if (readyPapers === 0) return { to: 'examinations', message: 'Next, add the papers students will sit', action: 'Go to papers' }
     if (slotsTooShort === openSlots) {
-      return { to: 'slots', message: `None of the open slots can hold a ${formatDuration(shortestPaperMinutes)} paper.`, action: 'Go to time slots' }
+      return { to: 'slots', message: `None of the open slots can hold a ${formatDuration(shortestPaperMinutes)} paper`, action: 'Go to time slots' }
     }
     if (latestVersionNo === 0) return { to: 'timetable', message: 'Slots and papers are ready. Generate the timetable.', action: 'Go to timetable' }
-    if (inReviewStatus === 'REVIEWED') return { to: 'timetable', message: 'The timetable is approved and ready to publish.', action: 'Go to timetable' }
+    if (inReviewStatus === 'REVIEWED') return { to: 'timetable', message: 'The timetable is approved and ready to publish', action: 'Go to timetable' }
     if (!inReviewStatus && latestVersionStatus === 'DRAFT' && latestPlaced === latestTotal) {
       return latestProblems > 0
-        ? { to: 'timetable', message: 'The latest timetable has problems to fix before it can be sent.', action: 'Go to timetable' }
-        : { to: 'timetable', message: 'The timetable is ready to send for approval.', action: 'Go to timetable' }
+        ? { to: 'timetable', message: 'The latest timetable has problems to fix before it can be sent', action: 'Go to timetable' }
+        : { to: 'timetable', message: 'The timetable is ready to send for approval', action: 'Go to timetable' }
     }
     return null
   }
   if (inReviewStatus === 'DRAFT' && approverIds.includes(userId)) {
-    return { to: 'timetable', message: 'A timetable is waiting for your approval.', action: 'Review it' }
+    return { to: 'timetable', message: 'A timetable is waiting for your approval', action: 'Review it' }
   }
   return null
 }

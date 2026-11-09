@@ -45,7 +45,7 @@ export default function ExamInspectorDialog({ entry, entries, onClose }) {
           <h3 id="inspector-halls" className="mb-2 text-footnote font-medium text-ink">
             {entry.halls.length === 1 ? 'Hall' : `Split across ${entry.halls.length} halls`}
           </h3>
-          <ul className="overflow-hidden rounded-md border border-line">
+          <ul className="border-y border-line">
             {entry.halls.map((hall) => (
               <li key={hall.code} className="flex items-center justify-between gap-4 border-b border-line px-3 py-2.5 last:border-b-0">
                 <span className="min-w-0">
@@ -68,7 +68,7 @@ export default function ExamInspectorDialog({ entry, entries, onClose }) {
             <h3 id="inspector-shared" className="mb-2 text-footnote font-medium text-ink">
               Shares students with
             </h3>
-            <ul className="overflow-hidden rounded-md border border-line">
+            <ul className="border-y border-line">
               {related.map(({ paper, sharedStudents }) => (
                 <li key={paper.examinationId} className="border-b border-line px-3 py-2.5 last:border-b-0">
                   <span className="block text-callout text-ink">{paper.subjectName}</span>

@@ -3,7 +3,7 @@ import { Check } from 'lucide-react'
 // A list of whole-row choices with a trailing check, as in iOS Settings. Native inputs keep keyboard and screen reader behaviour.
 export default function ChoiceList({ type = 'checkbox', name, options, isChosen, onToggle }) {
   return (
-    <ul className="overflow-hidden rounded-md border border-line">
+    <ul className="border-y border-line">
       {options.map((option) => {
         const chosen = isChosen(option.value)
         return (
@@ -26,7 +26,7 @@ export default function ChoiceList({ type = 'checkbox', name, options, isChosen,
                 {option.detail && <span className="block text-footnote text-ink-tertiary">{option.detail}</span>}
               </span>
               {option.accessory}
-              <Check size={18} aria-hidden="true" className={`shrink-0 text-accent ${chosen ? '' : 'invisible'}`} />
+              <Check size={16} aria-hidden="true" className={`shrink-0 text-accent ${chosen ? '' : 'invisible'}`} />
             </label>
           </li>
         )

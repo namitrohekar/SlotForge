@@ -10,7 +10,7 @@ export default function SectionNav({ label, sections }) {
           to={to}
           className={({ isActive }) =>
             `sf-press flex min-h-control items-center px-3 text-callout whitespace-nowrap [--press-scale:0.98] ${
-              isActive ? 'font-medium text-ink shadow-[inset_0_-2px_0_var(--sf-accent)]' : 'text-ink-secondary hover:text-ink'
+              isActive ? 'font-medium text-ink shadow-[inset_0_-2px_0_var(--sf-tick)]' : 'text-ink-secondary hover:text-ink'
             }`
           }
         >

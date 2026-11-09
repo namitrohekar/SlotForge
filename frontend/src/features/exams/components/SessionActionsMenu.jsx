@@ -45,7 +45,7 @@ export default function SessionActionsMenu({ session, showOpen = false, onChange
   const confirmations = {
     cancel: {
       title: `Cancel ${session.name}?`,
-      message: 'Its slots, papers and timetables are kept for the record, but nothing can change until it is reopened.',
+      message: 'Its slots, papers and timetables are kept for the record, but nothing can change until it is reopened',
       confirmLabel: 'Cancel session',
       variant: 'danger',
       onConfirm: () => run(() => changeSessionStatus(session.id, 'CANCELLED'), 'Session cancelled', onChanged),
@@ -55,7 +55,7 @@ export default function SessionActionsMenu({ session, showOpen = false, onChange
       message:
         session.status === 'PUBLISHED'
           ? 'It returns to planning. The published timetable stays official until a new one is approved and published.'
-          : 'It returns to planning, and its slots, papers and timetables can be changed again.',
+          : 'It returns to planning, and its slots, papers and timetables can be changed again',
       confirmLabel: 'Reopen session',
       variant: 'primary',
       onConfirm: () => run(() => changeSessionStatus(session.id, 'PLANNING'), 'Session reopened', onChanged),

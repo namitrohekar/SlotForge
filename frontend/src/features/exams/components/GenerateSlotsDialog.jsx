@@ -63,7 +63,7 @@ export default function GenerateSlotsDialog({ session, existing, onClose, onGene
       open
       onClose={onClose}
       title="Generate time slots"
-      description="Slots that would overlap an existing one are skipped, so this is safe to run again."
+      description="Slots that would overlap an existing one are skipped, so this is safe to run again"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={submitting}>

@@ -32,7 +32,7 @@ export default function SessionDetailPage() {
   if (!session) return <Skeleton className="h-96 w-full rounded-lg" />
 
   const rest = session.heavyGapDays ? `${plural(session.heavyGapDays, 'rest day')} between heavy papers` : 'no rest day needed between heavy papers'
-  const rules = `${plural(session.maxExamsPerStudentPerDay, 'paper')} per student per day, ${rest}.`
+  const rules = `${plural(session.maxExamsPerStudentPerDay, 'paper')} per student per day, ${rest}`
   const next = nextStep(session, { isCoordinator, userId })
 
   return (

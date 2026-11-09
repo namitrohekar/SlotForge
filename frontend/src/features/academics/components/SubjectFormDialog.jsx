@@ -57,7 +57,7 @@ export default function SubjectFormDialog({ subject, departments, defaultDepartm
           <Input {...field('name')} maxLength={150} placeholder="Data Structures and Algorithms" />
         </FormField>
         <div className="grid gap-5 sm:grid-cols-2">
-          <FormField label="Code" required hint="As printed on the syllabus." error={errors.code}>
+          <FormField label="Code" required hint="As printed on the syllabus" error={errors.code}>
             <Input {...field('code')} maxLength={20} autoCapitalize="characters" spellCheck={false} className="uppercase" />
           </FormField>
           <FormField label="Taught by" required error={errors.departmentId}>

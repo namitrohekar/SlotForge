@@ -65,7 +65,7 @@ export default function FromCurriculumDialog({ session, onClose, onCreated }) {
           )}
           {errors.batchIds && <p className="mt-1 text-footnote text-danger">{errors.batchIds}</p>}
         </fieldset>
-        <FormField label="Duration in minutes" required hint="You can change it for any single paper afterwards." error={errors.durationMinutes}>
+        <FormField label="Duration in minutes" required hint="You can change it for any single paper afterwards" error={errors.durationMinutes}>
           <NumberInput {...field('durationMinutes')} />
         </FormField>
       </form>

@@ -55,7 +55,7 @@ export default function CurriculumFormDialog({ curriculum, courses, defaultCours
         <FormField
           label="Programme"
           required
-          hint={editing ? 'A curriculum stays with its programme.' : undefined}
+          hint={editing ? 'A curriculum stays with its programme' : undefined}
           error={errors.courseId}
         >
           <Select {...field('courseId')} disabled={editing}>

@@ -21,7 +21,7 @@ import CourseFormDialog from './CourseFormDialog.jsx'
 
 const columns = [
   { key: 'name', header: 'Programme', primary: true, sortable: true },
-  { key: 'code', header: 'Code', sortable: true },
+  { key: 'code', header: 'Code', sortable: true, mono: true },
   { key: 'departmentName', header: 'Department', priority: 'low' },
   { key: 'totalSemesters', header: 'Length', sortable: true, render: (course) => formatLength(course.totalSemesters) },
   {
@@ -30,7 +30,7 @@ const columns = [
     numeric: true,
     render: (course) =>
       course.curriculumCount > 0 ? (
-        <Link to={`/academics/curricula?courseId=${course.id}`} data-numeric className="rounded-sm text-accent hover:underline">
+        <Link to={`/academics/curricula?courseId=${course.id}`} data-numeric className="rounded-sm text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
           {course.curriculumCount}
         </Link>
       ) : (
@@ -107,7 +107,7 @@ export default function CoursesTab() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Programmes"
           columns={columns}
@@ -124,8 +124,8 @@ export default function CoursesTab() {
               title={filtered ? 'No programmes match' : 'No programmes yet'}
               description={
                 filtered
-                  ? 'Try another name, code or department.'
-                  : 'A programme is a degree a department runs, such as B.Tech Computer Engineering or MCA.'
+                  ? 'Try another name, code or department'
+                  : 'A programme is a degree a department runs, such as B.Tech Computer Engineering or MCA'
               }
             />
           }

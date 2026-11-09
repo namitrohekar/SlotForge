@@ -46,7 +46,7 @@ export default function AppointHeadDialog({ department, onClose, onSaved }) {
         {candidates.data?.items.length === 0 && (
           <Alert tone="warning">No active account has the Head of department role. Add one in Users first.</Alert>
         )}
-        <FormField label="Head of department" hint="Only this person can approve timetables for students of this department.">
+        <FormField label="Head of department" hint="Only this person can approve timetables for students of this department">
           <Select {...field('headId')}>
             <option value="">No head appointed</option>
             {candidates.data?.items.map((user) => (

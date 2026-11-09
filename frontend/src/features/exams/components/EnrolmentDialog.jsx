@@ -61,10 +61,10 @@ export default function EnrolmentDialog({ exam, canEdit, onClose, onChanged }) {
           <section aria-label="Add a student">
             <SearchInput label="Add a student by name or roll number" value={search} onSearch={setSearch} />
             {search && candidates.data?.items.length === 0 && (
-              <p className="mt-2 text-callout text-ink-tertiary">No student matches.</p>
+              <p className="mt-2 text-callout text-ink-tertiary">No student matches</p>
             )}
             {search && candidates.data?.items.length > 0 && (
-              <ul className="mt-2 overflow-hidden rounded-md border border-line">
+              <ul className="mt-2 border-y border-line">
                 {candidates.data.items.map((student) => (
                   <li key={student.id} className="flex min-h-12 items-center gap-3 border-b border-line py-1 pr-1 pl-3 last:border-b-0">
                     <span data-numeric className="w-24 shrink-0 text-footnote text-ink-tertiary">
@@ -105,10 +105,10 @@ export default function EnrolmentDialog({ exam, canEdit, onClose, onChanged }) {
           {enrolled.error && <p className="mt-2 text-callout text-danger">{enrolled.error.message}</p>}
           {!results && !enrolled.error && <Skeleton className="mt-2 h-40 w-full rounded-md" />}
           {results?.items.length === 0 && (
-            <p className="py-6 text-center text-callout text-ink-tertiary">{filter ? 'No enrolled student matches.' : 'Nobody is enrolled yet.'}</p>
+            <p className="py-6 text-center text-callout text-ink-tertiary">{filter ? 'No enrolled student matches' : 'Nobody is enrolled yet'}</p>
           )}
           {results?.items.length > 0 && (
-            <ul className="mt-2 overflow-hidden rounded-md border border-line">
+            <ul className="mt-2 border-y border-line">
               {results.items.map((student) => (
                 <li key={student.studentId} className="flex min-h-12 items-center gap-3 border-b border-line py-1 pr-1 pl-3 last:border-b-0">
                   <span data-numeric className="w-24 shrink-0 text-footnote text-ink-tertiary">

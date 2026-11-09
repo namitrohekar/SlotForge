@@ -10,8 +10,8 @@ export default function NotFoundPage() {
       <EmptyState
         icon={Compass}
         title="Nothing lives at this address"
-        description="The link may be old, or the address mistyped."
-        action={<Link to="/" className="text-callout font-medium text-accent hover:underline">Go to the dashboard</Link>}
+        description="The link may be old, or the address mistyped"
+        action={<Link to="/" className="text-callout font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">Go to the dashboard</Link>}
       />
     </>
   )

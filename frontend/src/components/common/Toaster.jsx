@@ -22,7 +22,7 @@ export default function Toaster() {
             role={toast.tone === 'danger' ? 'alert' : 'status'}
             className="sf-toast flex items-start gap-2.5 rounded-md border border-line bg-raised py-2 pr-1.5 pl-3.5 shadow-1"
           >
-            <Icon size={18} aria-hidden="true" className={`mt-2 shrink-0 ${iconColours[toast.tone]}`} />
+            <Icon size={16} aria-hidden="true" className={`mt-2.5 shrink-0 ${iconColours[toast.tone]}`} />
             <p className="min-w-0 flex-1 self-center text-callout text-ink">{toast.message}</p>
             <IconButton label="Dismiss" icon={X} onClick={() => dismiss(toast.id)} />
           </div>

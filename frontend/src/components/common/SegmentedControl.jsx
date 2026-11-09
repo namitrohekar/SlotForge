@@ -24,7 +24,7 @@ export default function SegmentedControl({ label, options, value, onChange, icon
             className="peer sr-only"
           />
           <span className="sf-press flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-sm px-2 text-footnote text-ink-secondary peer-checked:font-medium peer-checked:text-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-1 peer-focus-visible:outline-focus">
-            {option.icon && <option.icon size={15} aria-hidden="true" />}
+            {option.icon && <option.icon size={16} aria-hidden="true" />}
             <span className={iconOnly ? 'sr-only' : undefined}>{option.label}</span>
           </span>
         </label>

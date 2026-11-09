@@ -79,10 +79,10 @@ export default function CourseFormDialog({ course, departments, defaultDepartmen
           </Select>
         </FormField>
         <div className="grid gap-5 sm:grid-cols-2">
-          <FormField label="Code" required hint="Such as BT-CE or MCA." error={errors.code}>
+          <FormField label="Code" required hint="Such as BT-CE or MCA" error={errors.code}>
             <Input {...field('code')} maxLength={20} autoCapitalize="characters" spellCheck={false} className="uppercase" />
           </FormField>
-          <FormField label="Semesters" required hint="8 for B.Tech, 6 for a diploma, 4 for M.Tech and MCA." error={errors.totalSemesters}>
+          <FormField label="Semesters" required hint="8 for B.Tech, 6 for a diploma, 4 for M.Tech and MCA" error={errors.totalSemesters}>
             <NumberInput {...field('totalSemesters')} />
           </FormField>
         </div>

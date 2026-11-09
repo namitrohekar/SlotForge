@@ -18,30 +18,30 @@ export default function TimetableGrid({ entries, onOpen }) {
 
   return (
     <div onMouseLeave={() => setFocused(null)} onBlur={() => setFocused(null)}>
-      <div className="w-fit max-w-full overflow-x-auto rounded-lg border border-line">
-        <table className="border-collapse text-left">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-left">
           <caption className="sr-only">Timetable by day and exam period</caption>
           <thead>
-            <tr className="border-b border-line bg-sunken text-footnote text-ink-secondary">
-              <th scope="col" className="sticky left-0 z-10 w-32 bg-sunken px-4 py-2.5 font-medium">
+            <tr className="border-b border-ink text-caption text-ink-tertiary">
+              <th scope="col" className="sticky left-0 z-10 w-32 bg-surface pr-4 pb-2 font-normal">
                 Day
               </th>
               {periods.map((period) => (
-                <th key={period} scope="col" data-numeric className="w-72 min-w-60 px-3 py-2.5 font-medium">
+                <th key={period} scope="col" className="min-w-60 border-l border-line px-3 pb-2 font-mono font-normal">
                   {label(period)}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-line">
+          <tbody className="divide-y divide-line border-b border-line">
             {days.map((date) => (
               <tr key={date}>
-                <th scope="row" className="sticky left-0 z-10 bg-surface px-4 py-3 align-top text-callout font-medium whitespace-nowrap text-ink">
+                <th scope="row" className="sticky left-0 z-10 bg-surface py-3 pr-4 align-top text-callout font-medium whitespace-nowrap text-ink">
                   {formatDay(date)}
                 </th>
                 {periods.map((period) => (
-                  <td key={period} className="px-2 py-2 align-top">
-                    <div className="space-y-2">
+                  <td key={period} className="border-l border-line align-top">
+                    <div className="divide-y divide-line">
                       {entries
                         .filter((entry) => entry.date === date && periodOf(entry) === period)
                         .map((entry) => (
@@ -62,7 +62,7 @@ export default function TimetableGrid({ entries, onOpen }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-footnote text-ink-tertiary">Point at a paper to see which others share its students.</p>
+      <p className="mt-3 text-footnote text-ink-tertiary">Point at a paper to see which others share its students</p>
     </div>
   )
 }

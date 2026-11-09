@@ -1,15 +1,11 @@
-import { toneIcons, toneStyles } from './toneIcons.js'
+const rules = { info: 'border-line-strong', success: 'border-line-strong', warning: 'border-warning', danger: 'border-danger' }
 
+// A rule in the margin, not a filled box. The words say what kind of notice it is.
 export default function Alert({ tone = 'info', title, children }) {
-  const Icon = toneIcons[tone]
-
   return (
-    <div role={tone === 'danger' ? 'alert' : 'status'} className={`flex items-start gap-2.5 rounded-md px-3.5 py-3 ${toneStyles[tone]}`}>
-      <Icon size={18} aria-hidden="true" className="mt-px shrink-0" />
-      <div className="min-w-0 text-callout">
-        {title && <p className="font-medium">{title}</p>}
-        {children && <div>{children}</div>}
-      </div>
+    <div role={tone === 'danger' ? 'alert' : 'status'} className={`border-l-2 py-0.5 pl-3 text-callout text-ink-secondary ${rules[tone]}`}>
+      {title && <p className="font-medium text-ink">{title}</p>}
+      {children && <div>{children}</div>}
     </div>
   )
 }

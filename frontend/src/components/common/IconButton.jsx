@@ -8,7 +8,7 @@ export default function IconButton({ label, icon: Icon, className = '', type = '
       className={`inline-flex size-control shrink-0 items-center justify-center rounded-md text-ink-secondary select-none sf-press hover:bg-sunken hover:text-ink active:bg-sunken disabled:opacity-50 ${className}`}
       {...props}
     >
-      <Icon size={18} aria-hidden="true" />
+      <Icon size={16} aria-hidden="true" />
     </button>
   )
 }

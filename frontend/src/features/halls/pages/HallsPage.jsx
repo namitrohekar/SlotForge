@@ -20,7 +20,7 @@ import { deleteHall, listHalls } from '../services/hallsApi.js'
 
 const columns = [
   { key: 'name', header: 'Hall', primary: true, sortable: true },
-  { key: 'code', header: 'Code', sortable: true },
+  { key: 'code', header: 'Code', sortable: true, mono: true },
   {
     key: 'building',
     header: 'Building',
@@ -56,7 +56,7 @@ export default function HallsPage() {
     <>
       <PageHeader
         title="Halls"
-        description="The rooms exams can be held in, and how many students each can seat."
+        description="The rooms exams can be held in, and how many students each can seat"
         actions={
           canEdit && (
             <Button icon={Plus} onClick={() => setForm({ hall: null })}>
@@ -76,7 +76,7 @@ export default function HallsPage() {
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Halls"
           columns={columns}
@@ -91,7 +91,7 @@ export default function HallsPage() {
             <EmptyState
               icon={DoorOpen}
               title={filtered ? 'No halls match' : 'No halls yet'}
-              description={filtered ? 'Try another name, building or status.' : 'Timetables need halls to place exams in.'}
+              description={filtered ? 'Try another name, building or status' : 'Timetables need halls to place exams in'}
             />
           }
         />
@@ -113,7 +113,7 @@ export default function HallsPage() {
       <ConfirmDialog
         open={Boolean(deletion.target)}
         title={`Delete ${deletion.target?.name ?? ''}?`}
-        message="This cannot be undone."
+        message="This cannot be undone"
         confirmLabel="Delete"
         loading={deletion.busy}
         onConfirm={deletion.confirm}

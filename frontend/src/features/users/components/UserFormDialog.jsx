@@ -45,7 +45,7 @@ export default function UserFormDialog({ user, isSelf, onClose, onSaved }) {
       open
       onClose={onClose}
       title={editing ? 'Edit user' : 'Add user'}
-      description={editing ? user.email : 'They can sign in once they have an account here.'}
+      description={editing ? user.email : 'They can sign in once they have an account here'}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
@@ -65,7 +65,7 @@ export default function UserFormDialog({ user, isSelf, onClose, onSaved }) {
         </FormField>
 
         {!editing && (
-          <FormField label="Email" required hint="Their institutional address." error={errors.email}>
+          <FormField label="Email" required hint="Their institutional address" error={errors.email}>
             <Input {...field('email')} type="email" autoComplete="email" inputMode="email" maxLength={254} />
           </FormField>
         )}
@@ -80,7 +80,7 @@ export default function UserFormDialog({ user, isSelf, onClose, onSaved }) {
           </legend>
           <p className="mt-1 text-footnote text-ink-tertiary">
             {isSelf
-              ? 'You cannot change your own roles.'
+              ? 'You cannot change your own roles'
               : 'A student holds no other role. Staff may add Administrator or Exam coordinator, except a head of department.'}
           </p>
           <div className="mt-2">

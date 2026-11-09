@@ -52,7 +52,7 @@ export default function ExaminationsTab() {
         </span>
       ),
     },
-    { key: 'subject.code', header: 'Code', sortable: true, render: (exam) => <span data-numeric>{exam.subjectCode}</span> },
+    { key: 'subject.code', header: 'Code', sortable: true, mono: true, render: (exam) => exam.subjectCode },
     { key: 'departmentCode', header: 'Taught by', priority: 'low' },
     { key: 'durationMinutes', header: 'Duration', sortable: true, render: (exam) => formatDuration(exam.durationMinutes) },
     {
@@ -66,7 +66,7 @@ export default function ExaminationsTab() {
             data-numeric
             aria-label={`${plural(exam.enrolled, 'student')} in ${exam.subjectName}`}
             onClick={() => setStudents(exam)}
-            className="rounded-sm text-accent hover:underline"
+            className="rounded-sm text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink"
           >
             {exam.enrolled}
           </button>
@@ -102,7 +102,7 @@ export default function ExaminationsTab() {
         {canEdit && addButton}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Papers"
           columns={columns}
@@ -117,7 +117,7 @@ export default function ExaminationsTab() {
             <EmptyState
               icon={FileText}
               title={query.q ? 'No papers match' : 'No papers yet'}
-              description={query.q ? 'Try another name or code.' : 'Add the papers each batch sits in this session.'}
+              description={query.q ? 'Try another name or code' : 'Add the papers each batch sits in this session'}
             />
           }
         />

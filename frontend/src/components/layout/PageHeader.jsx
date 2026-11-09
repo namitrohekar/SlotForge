@@ -19,7 +19,7 @@ export default function PageHeader({ eyebrow, title, description, actions }) {
     <header className="mb-8 md:mb-12">
       {eyebrow && <p className="mb-1.5 text-footnote text-ink-tertiary">{eyebrow}</p>}
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <h1 ref={heading} tabIndex={-1} className="font-serif text-display font-medium">
+        <h1 ref={heading} tabIndex={-1} className="text-display">
           {title}
         </h1>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

@@ -1,15 +1,11 @@
-const tones = {
-  neutral: 'bg-sunken text-ink-secondary',
-  info: 'bg-info-subtle text-info',
-  success: 'bg-success-subtle text-success',
-  warning: 'bg-warning-subtle text-warning',
-  danger: 'bg-danger-subtle text-danger',
-}
+const dots = { warning: 'bg-warning', danger: 'bg-danger' }
 
+// Quiet text. A dot appears only when something needs attention, and the words always carry the meaning.
 export default function Badge({ tone = 'neutral', icon: Icon, children }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption whitespace-nowrap ${tones[tone]}`}>
-      {Icon && <Icon size={12} aria-hidden="true" />}
+    <span className="inline-flex items-center gap-1.5 text-footnote whitespace-nowrap text-ink-secondary">
+      {dots[tone] && <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${dots[tone]}`} />}
+      {Icon && <Icon size={16} aria-hidden="true" />}
       {children}
     </span>
   )

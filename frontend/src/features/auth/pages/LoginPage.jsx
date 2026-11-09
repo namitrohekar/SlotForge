@@ -27,7 +27,7 @@ const notices = {
 const GOOGLE_FAILED = 'Google sign-in did not finish. Try again.'
 const googleRefusals = {
   DOMAIN_NOT_ALLOWED: 'Use your VJTI Google account. Other accounts cannot sign in.',
-  EMAIL_NOT_VERIFIED: 'Google has not verified this email address.',
+  EMAIL_NOT_VERIFIED: 'Google has not verified this email address',
   NOT_REGISTERED: 'This account is not registered in SlotForge. Ask the exam office to add you.',
   ACCOUNT_DEACTIVATED: 'This account has been deactivated. Ask an administrator for help.',
   ACCOUNT_CONFLICT: 'This email is linked to a different Google account. Ask an administrator for help.',
@@ -71,7 +71,7 @@ export default function LoginPage() {
       </header>
 
       <main className="sf-page mx-auto flex w-full max-w-md flex-1 flex-col justify-center py-12">
-        <h1 className="font-serif text-display font-medium">Sign in</h1>
+        <h1 className="text-display">Sign in</h1>
         <p className="mt-2 text-body text-ink-secondary">Exam scheduling for VJTI.</p>
 
         <div className="mt-8 space-y-4">
@@ -88,13 +88,13 @@ export default function LoginPage() {
           )}
           {data && data.users.length > 0 && (
             <>
-              <h2 className="text-footnote text-ink-tertiary">Choose a demo account to explore SlotForge as that role.</h2>
+              <h2 className="text-footnote text-ink-tertiary">Choose a demo account to explore SlotForge as that role</h2>
               <DemoUserPicker users={data.users} pendingId={pendingId} onPick={pick} />
             </>
           )}
           {data && data.users.length === 0 && !data.options.googleEnabled && (
             <Alert tone="warning" title="No sign-in method is set up">
-              Start the backend with the local profile to use demo accounts.
+              Start the backend with the local profile to use demo accounts
             </Alert>
           )}
         </div>

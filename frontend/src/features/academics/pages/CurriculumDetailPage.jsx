@@ -20,8 +20,8 @@ const placement = ({ subjectId, semesterNo, elective }) => ({ subjectId, semeste
 function Semester({ number, items, canEdit, saving, onAdd, onRemove }) {
   const headingId = `semester-${number}`
   return (
-    <section aria-labelledby={headingId} className="rounded-lg border border-line">
-      <header className="flex min-h-13 items-center justify-between gap-3 border-b border-line py-2 pr-2 pl-4">
+    <section aria-labelledby={headingId} className="border-t border-ink">
+      <header className="flex min-h-13 items-center justify-between gap-3 border-b border-line py-2">
         <h3 id={headingId} className="text-title-3">
           Semester {number}
           <span data-numeric className="ml-2 text-footnote font-normal text-ink-tertiary">
@@ -35,16 +35,16 @@ function Semester({ number, items, canEdit, saving, onAdd, onRemove }) {
         )}
       </header>
       {items.length === 0 ? (
-        <p className="px-4 py-5 text-callout text-ink-tertiary">No subjects yet.</p>
+        <p className="py-5 text-callout text-ink-tertiary">No subjects yet</p>
       ) : (
         <ul>
           {items.map((item) => (
-            <li key={item.subjectId} className="flex min-h-12 items-center gap-3 border-b border-line py-1.5 pr-2 pl-4 last:border-b-0">
-              <span data-numeric className="w-24 shrink-0 text-footnote text-ink-tertiary">
+            <li key={item.subjectId} className="flex min-h-12 items-center gap-3 border-b border-line py-1.5 last:border-b-0">
+              <span className="w-24 shrink-0 font-mono text-caption text-ink-tertiary">
                 {item.code}
               </span>
               <span className="min-w-0 flex-1 text-callout text-ink">{item.name}</span>
-              {item.elective && <Badge tone="info">Elective</Badge>}
+              {item.elective && <Badge>Elective</Badge>}
               {item.heavy && <HeavyBadge />}
               {canEdit && (
                 <IconButton
@@ -101,7 +101,7 @@ export default function CurriculumDetailPage() {
         Curricula
       </Link>
       <header className="mt-3 mb-8">
-        <h2 className="font-serif text-title-1 font-medium">{name}</h2>
+        <h2 className="text-title-1">{name}</h2>
         <p className="mt-1 text-callout text-ink-secondary">
           {courseName} · {courseCode} · in force from <span data-numeric>{effectiveFromYear}</span>
         </p>

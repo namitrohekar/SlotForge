@@ -12,6 +12,7 @@ import { useApi } from '../../../hooks/useApi.js'
 import { useAuthStore } from '../../../store/authStore.js'
 import { formatDate, formatDateTime, formatDay, formatLongDate } from '../../../utils/format.js'
 import { hasAnyRole } from '../../../utils/roles.js'
+import ExamPeriodRuler from '../components/ExamPeriodRuler.jsx'
 import NextStepBanner from '../../exams/components/NextStepBanner.jsx'
 import SessionSteps from '../../exams/components/SessionSteps.jsx'
 import { getSession, listSessions } from '../../exams/services/examsApi.js'
@@ -51,17 +52,18 @@ function CurrentSession({ id }) {
     <section aria-labelledby="current-session">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
         <div className="min-w-0">
-          <p className="text-footnote text-ink-tertiary">Being planned · {dates(session)}</p>
-          <h2 id="current-session" className="mt-0.5 font-serif text-title-1 font-medium">
+          <p className="font-mono text-caption text-ink-tertiary">{dates(session)}</p>
+          <h2 id="current-session" className="mt-0.5 text-title-1">
             {session.name}
           </h2>
         </div>
-        <Link to={base} className="text-callout font-medium text-accent hover:underline">
+        <Link to={base} className="text-callout font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
           Open session
         </Link>
       </div>
       <SessionSteps steps={sessionSteps(session, true)} base={base} />
       {next && <NextStepBanner next={next} base={base} />}
+      <ExamPeriodRuler session={session} />
     </section>
   )
 }
@@ -79,7 +81,7 @@ function DutiesAtRisk() {
               <Link to={`/sessions/${duty.sessionId}/timetable`} className="font-medium underline">
                 {duty.sessionName}
               </Link>
-              : {duty.staffName} cannot invigilate {duty.paperCode} in {duty.hallCode} on {formatDay(duty.date)}.
+              : {duty.staffName} cannot invigilate {duty.paperCode} in {duty.hallCode} on {formatDay(duty.date)}
             </li>
           ))}
         </ul>
@@ -106,22 +108,25 @@ function CoordinatorHome() {
         <EmptyState
           icon={CalendarDays}
           title="No session is being planned"
-          description="A timetable starts with a session: its dates and its rules."
+          description="A timetable starts with a session: its dates and its rules"
           action={<LinkButton to="/sessions">Go to exam sessions</LinkButton>}
         />
       )}
       {others.length > 0 && (
         <section aria-labelledby="other-sessions" className="mt-10">
-          <h2 id="other-sessions" className="mb-2 text-footnote font-medium text-ink-secondary">
+          <h2 id="other-sessions" className="mb-2 text-footnote text-ink-tertiary">
             Other sessions
           </h2>
           <ul className="border-t border-line">
             {others.map((session) => (
               <li key={session.id} className="flex min-h-12 items-center justify-between gap-4 border-b border-line py-2">
-                <Link to={`/sessions/${session.id}`} className="min-w-0 truncate rounded-sm text-callout font-medium text-ink hover:text-accent">
+                <Link to={`/sessions/${session.id}`} className="min-w-0 truncate rounded-sm text-callout font-medium text-ink decoration-line-strong underline-offset-2 hover:underline">
                   {session.name}
                 </Link>
-                <StatusBadge status={session.status} />
+                <span className="flex shrink-0 items-center gap-6">
+                  <span className="hidden font-mono text-caption text-ink-tertiary sm:inline">{dates(session)}</span>
+                  <StatusBadge status={session.status} />
+                </span>
               </li>
             ))}
           </ul>
@@ -137,17 +142,17 @@ function ReviewerHome() {
   if (error) return <ErrorState message={error.message} onRetry={reload} />
   if (!data) return <Skeleton className="h-40 w-full rounded-lg" />
   if (data.length === 0) {
-    return <EmptyState icon={CalendarCheck} title="Nothing is waiting for you" description="Timetables that need your approval appear here." />
+    return <EmptyState icon={CalendarCheck} title="Nothing is waiting for you" description="Timetables that need your approval appear here" />
   }
 
   return (
     <section aria-labelledby="awaiting">
-      <h2 id="awaiting" className="mb-3 font-serif text-title-2 font-medium">
+      <h2 id="awaiting" className="mb-3 text-title-2">
         Waiting for your approval
       </h2>
-      <ul className="overflow-hidden rounded-lg border border-line">
+      <ul className="border-y border-line">
         {data.map((item) => (
-          <li key={item.versionId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-4 py-3 last:border-b-0">
+          <li key={item.versionId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line py-3 last:border-b-0">
             <div className="min-w-0">
               <p className="text-callout font-medium text-ink">{item.sessionName}</p>
               <p data-numeric className="text-footnote text-ink-tertiary">
@@ -169,7 +174,7 @@ function PersonalHome() {
       <EmptyState
         icon={CalendarClock}
         title="Your invigilation duties"
-        description="See where and when you are on duty, and tell us the dates you cannot invigilate."
+        description="See where and when you are on duty, and tell us the dates you cannot invigilate"
         action={<LinkButton to="/my/duties">Open My duties</LinkButton>}
       />
     )
@@ -178,7 +183,7 @@ function PersonalHome() {
     <EmptyState
       icon={CalendarClock}
       title="No timetable to show yet"
-      description="Your exam timetable will appear here once it has been published."
+      description="Your exam timetable will appear here once it has been published"
     />
   )
 }

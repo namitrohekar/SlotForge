@@ -24,7 +24,7 @@ export default function ReturnDialog({ version, onClose, onReturned }) {
       open
       onClose={onClose}
       title={`Send back version ${version.versionNo}`}
-      description="The coordinator sees your comment and can generate a new version."
+      description="The coordinator sees your comment and can generate a new version"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={submitting}>

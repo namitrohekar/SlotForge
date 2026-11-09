@@ -22,10 +22,10 @@ function SortButton({ column, sort, onSort }) {
     <button
       type="button"
       onClick={() => onSort(`${column.key},${active && direction === 'asc' ? 'desc' : 'asc'}`)}
-      className="inline-flex items-center gap-1 rounded-sm hover:text-ink"
+      className="group inline-flex items-center gap-1 rounded-sm hover:text-ink"
     >
       {column.header}
-      <Icon size={13} aria-hidden="true" />
+      <Icon size={14} aria-hidden="true" className={active ? '' : 'opacity-0 transition-opacity duration-(--duration-fast) group-hover:opacity-100 group-focus-visible:opacity-100'} />
     </button>
   )
 }
@@ -45,19 +45,19 @@ function Table({ caption, columns, rows, rowKey, loading, sort, onSort, actions,
       <table aria-busy={loading || undefined} className="w-full border-collapse text-left text-callout">
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-line bg-sunken text-footnote text-ink-secondary">
+          <tr className="border-b border-ink text-caption text-ink-tertiary">
             {columns.map((column) => (
               <th
                 key={column.key}
                 scope="col"
                 aria-sort={ariaSort(column, sort)}
-                className={`px-4 py-2.5 font-medium ${column.numeric ? 'text-right' : ''} ${hideOnTablet(column)}`}
+                className={`px-3 pb-2 font-normal ${column.numeric ? 'text-right' : ''} ${hideOnTablet(column)}`}
               >
                 {column.sortable ? <SortButton column={column} sort={sort} onSort={onSort} /> : column.header}
               </th>
             ))}
             {actions && (
-              <th scope="col" className="w-12 px-2 py-2.5">
+              <th scope="col" className="w-12 px-2 pb-2">
                 <span className="sr-only">Actions</span>
               </th>
             )}
@@ -72,7 +72,7 @@ function Table({ caption, columns, rows, rowKey, loading, sort, onSort, actions,
               {columns.map((column) => (
                 <td
                   key={column.key}
-                  className={`px-4 py-2.5 ${column.numeric ? 'text-right' : ''} ${column.primary ? 'font-medium text-ink' : 'text-ink-secondary'} ${hideOnTablet(column)}`}
+                  className={`px-3 py-3 ${column.numeric ? 'text-right' : ''} ${column.mono ? 'font-mono text-caption' : ''} ${column.primary ? 'font-medium text-ink' : 'text-ink-secondary'} ${hideOnTablet(column)}`}
                 >
                   {cellValue(column, row)}
                 </td>
@@ -94,14 +94,14 @@ function CardList({ caption, columns, rows, rowKey, actions }) {
   return (
     <ul aria-label={caption} className="divide-y divide-line">
       {rows.map((row) => (
-        <li key={row[rowKey]} className="flex items-start gap-2 px-4 py-3">
+        <li key={row[rowKey]} className="flex items-start gap-2 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-body font-medium text-ink">{cellValue(primary, row)}</p>
             <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-footnote">
               {facts.map((column) => (
                 <div key={column.key} className="col-span-2 grid grid-cols-subgrid items-center">
                   <dt className="text-ink-tertiary">{column.header}</dt>
-                  <dd className="min-w-0 text-ink-secondary">{cellValue(column, row)}</dd>
+                  <dd className={`min-w-0 text-ink-secondary ${column.mono ? 'font-mono text-caption' : ''}`}>{cellValue(column, row)}</dd>
                 </div>
               ))}
             </dl>
@@ -117,7 +117,7 @@ function LoadingRows() {
   return (
     <div role="status" aria-label="Loading" className="divide-y divide-line">
       {Array.from({ length: LOADING_ROWS }, (_, index) => (
-        <div key={index} className="flex items-center gap-4 px-4 py-3.5">
+        <div key={index} className="flex items-center gap-4 py-3.5">
           <Skeleton className="h-4 w-1/3" />
           <Skeleton className="h-4 w-1/4" />
           <Skeleton className="ml-auto h-4 w-16" />

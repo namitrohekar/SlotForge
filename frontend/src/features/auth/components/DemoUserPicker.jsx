@@ -5,7 +5,7 @@ import { roleSummary } from '../../../utils/roles.js'
 // One row per seeded account. Choosing a row signs in as that person.
 export default function DemoUserPicker({ users, pendingId, onPick }) {
   return (
-    <ul aria-label="Demo accounts" className="overflow-hidden rounded-lg border border-line bg-surface">
+    <ul aria-label="Demo accounts" className="border-y border-line">
       {users.map((user) => (
         <li key={user.id} className="border-b border-line last:border-b-0">
           <button

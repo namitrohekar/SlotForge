@@ -69,7 +69,7 @@ export default function BatchFormDialog({ batch, curricula, onClose, onSaved }) 
         <FormField
           label="Curriculum"
           required
-          hint={editing ? 'A batch stays with its curriculum.' : undefined}
+          hint={editing ? 'A batch stays with its curriculum' : undefined}
           error={errors.curriculumId}
         >
           <Select {...field('curriculumId')} disabled={editing}>
@@ -91,7 +91,7 @@ export default function BatchFormDialog({ batch, curricula, onClose, onSaved }) 
           <FormField
             label="Current semester"
             required
-            hint={last ? `This programme has ${last} semesters.` : undefined}
+            hint={last ? `This programme has ${last} semesters` : undefined}
             error={errors.currentSemester}
           >
             <NumberInput {...field('currentSemester')} />

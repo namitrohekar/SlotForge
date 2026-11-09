@@ -32,7 +32,7 @@ const columns = [
       </>
     ),
   },
-  { key: 'rollNo', header: 'Roll number', sortable: true, render: (student) => <span data-numeric>{student.rollNo}</span> },
+  { key: 'rollNo', header: 'Roll number', sortable: true, mono: true },
   { key: 'batchName', header: 'Batch', render: (student) => `${student.courseCode} · ${student.batchName}` },
   { key: 'currentSemester', header: 'Semester', numeric: true, priority: 'low', render: (student) => <span data-numeric>{student.currentSemester}</span> },
   { key: 'enrolmentCount', header: 'Papers', numeric: true, render: (student) => <span data-numeric>{student.enrolmentCount}</span> },
@@ -91,7 +91,7 @@ export default function StudentsPage() {
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Students"
           columns={columns}
@@ -106,7 +106,7 @@ export default function StudentsPage() {
             <EmptyState
               icon={UserRound}
               title={filtered ? 'No students match' : 'No students yet'}
-              description={filtered ? 'Try another name, roll number or batch.' : 'Every student belongs to a batch.'}
+              description={filtered ? 'Try another name, roll number or batch' : 'Every student belongs to a batch'}
             />
           }
         />

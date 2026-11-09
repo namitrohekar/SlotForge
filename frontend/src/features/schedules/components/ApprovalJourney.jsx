@@ -1,6 +1,5 @@
-import { Check } from 'lucide-react'
 import { formatDateTime } from '../../../utils/format.js'
-import { approverLabel, STEP_MARKS } from '../../exams/sessionSteps.js'
+import { approverLabel } from '../../exams/sessionSteps.js'
 
 const COORDINATOR = 'Exam coordinator'
 
@@ -21,26 +20,19 @@ export default function ApprovalJourney({ version, progress }) {
   const current = stages.findIndex((stage) => !stage.at)
 
   return (
-    <ol aria-label="Approval journey" className="mb-4 grid gap-3 sm:grid-cols-5">
-      {stages.map((stage, index) => {
-        const state = stage.at ? 'done' : index === current ? 'current' : 'todo'
-        return (
-          <li key={stage.label} className="flex min-w-0 items-start gap-2.5">
-            <span aria-hidden="true" data-numeric className={`grid size-6 shrink-0 place-items-center rounded-full text-caption font-medium ${STEP_MARKS[state]}`}>
-              {stage.at ? <Check size={14} /> : index + 1}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-callout font-medium text-ink">{stage.label}</span>
-              <span className="block text-footnote text-ink-secondary">{stage.at ? stage.by : stage.expected}</span>
-              {stage.at && (
-                <span data-numeric className="block text-footnote text-ink-tertiary">
-                  {formatDateTime(stage.at)}
-                </span>
-              )}
-            </span>
-          </li>
-        )
-      })}
+    <ol aria-label="Approval journey" className="mb-6 grid border-y border-line sm:grid-cols-5">
+      {stages.map((stage, index) => (
+        <li
+          key={stage.label}
+          className={`min-w-0 border-line py-3 not-first:border-t sm:px-3 sm:first:pl-0 sm:not-first:border-t-0 sm:not-first:border-l ${
+            index === current ? 'shadow-[inset_0_-2px_0_var(--sf-tick)]' : ''
+          }`}
+        >
+          <span className={`block text-callout font-medium ${stage.at || index === current ? 'text-ink' : 'text-ink-tertiary'}`}>{stage.label}</span>
+          <span className="block text-footnote text-ink-secondary">{stage.at ? stage.by : stage.expected}</span>
+          {stage.at && <span className="block font-mono text-caption text-ink-tertiary">{formatDateTime(stage.at)}</span>}
+        </li>
+      ))}
     </ol>
   )
 }

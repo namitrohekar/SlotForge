@@ -39,8 +39,8 @@ describe('AppLayout', () => {
   it('offers the theme choice', () => {
     renderLayout()
 
-    expect(screen.getByRole('group', { name: 'Theme' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Dark theme' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Dark theme', hidden: true })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'System theme (current)', hidden: true })).toBeInTheDocument()
   })
 
   it('leaves focus alone on first load, so Tab can reach the skip link', () => {

@@ -58,7 +58,7 @@ export default function Tabs({ label, tabs, value, onChange, children }) {
             </button>
           )
         })}
-        <span ref={indicatorRef} aria-hidden="true" className="sf-move absolute bottom-0 left-0 h-0.5 bg-accent" />
+        <span ref={indicatorRef} aria-hidden="true" className="sf-move absolute bottom-0 left-0 h-0.5 bg-tick" />
       </div>
       <div role="tabpanel" id={panelId} aria-labelledby={tabId(value)} tabIndex={0} className="pt-5">
         {children}

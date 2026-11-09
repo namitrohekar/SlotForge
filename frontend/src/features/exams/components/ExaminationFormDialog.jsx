@@ -57,14 +57,14 @@ export default function ExaminationFormDialog({ exam, session, onClose, onSaved 
     >
       <form id={formId} noValidate onSubmit={handleSubmit} className="space-y-5">
         {formError && <Alert tone="danger">{formError}</Alert>}
-        <FormField label="Duration in minutes" required hint="A paper only fits slots at least this long." error={errors.durationMinutes}>
+        <FormField label="Duration in minutes" required hint="A paper only fits slots at least this long" error={errors.durationMinutes}>
           <NumberInput {...field('durationMinutes')} />
         </FormField>
         <div className="grid gap-5 sm:grid-cols-2">
-          <FormField label="Earliest day" hint="Optional." error={errors.earliestDate}>
+          <FormField label="Earliest day" hint="Optional" error={errors.earliestDate}>
             <Input {...field('earliestDate')} type="date" min={session.startDate} max={session.endDate} />
           </FormField>
-          <FormField label="Latest day" hint="Optional." error={errors.latestDate}>
+          <FormField label="Latest day" hint="Optional" error={errors.latestDate}>
             <Input {...field('latestDate')} type="date" min={session.startDate} max={session.endDate} />
           </FormField>
         </div>

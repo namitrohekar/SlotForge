@@ -33,9 +33,9 @@ import { useToastStore } from '../../../store/toastStore.js'
 const statuses = ['DRAFT', 'REVIEWED', 'PUBLISHED', 'SUPERSEDED', 'AVAILABLE', 'MAINTENANCE', 'BLOCKED', 'PARTIAL', 'FAILED']
 
 const type = [
-  ['Display', 'font-serif text-display font-medium', '28 to 34'],
-  ['Title 1', 'font-serif text-title-1 font-medium', '24 to 28'],
-  ['Title 2', 'font-serif text-title-2 font-medium', '20 to 22'],
+  ['Display', 'text-display', '28 to 34'],
+  ['Title 1', 'text-title-1', '24 to 28'],
+  ['Title 2', 'text-title-2', '20 to 22'],
   ['Title 3', 'text-title-3', '17'],
   ['Body', 'text-body', '15'],
   ['Callout', 'text-callout', '14'],
@@ -61,7 +61,7 @@ function Section({ title, note, children }) {
   return (
     <section className="grid gap-x-10 gap-y-4 border-t border-line pt-5 lg:grid-cols-[11rem_minmax(0,1fr)]">
       <div>
-        <h2 className="font-serif text-title-3 font-medium">{title}</h2>
+        <h2 className="text-title-3">{title}</h2>
         {note && <p className="mt-1 text-footnote text-ink-tertiary">{note}</p>}
       </div>
       <div className="flex min-w-0 flex-col gap-5">{children}</div>
@@ -81,7 +81,7 @@ function ThemePair() {
         <div key={theme} data-theme={theme} className="rounded-lg border border-line bg-canvas p-3 text-ink">
           <div className="rounded-md border border-line bg-surface p-4">
             <p className="text-footnote text-ink-tertiary">{theme === 'light' ? 'Light' : 'Dark'}</p>
-            <p className="mt-1 font-serif text-title-2 font-medium">MCA301</p>
+            <p className="mt-1 text-title-2">MCA301</p>
             <p className="text-callout text-ink-secondary">Monday, morning</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button>Publish</Button>

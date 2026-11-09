@@ -2,7 +2,6 @@ import { useState } from 'react'
 import Alert from '../../../components/common/Alert.jsx'
 import Button from '../../../components/common/Button.jsx'
 import ConfirmDialog from '../../../components/common/ConfirmDialog.jsx'
-import StatusBadge from '../../../components/common/StatusBadge.jsx'
 import { toApiError } from '../../../services/apiError.js'
 import { useAuthStore } from '../../../store/authStore.js'
 import { useToastStore } from '../../../store/toastStore.js'
@@ -14,13 +13,13 @@ import ContinueAsDemo from './ContinueAsDemo.jsx'
 import ReturnDialog from './ReturnDialog.jsx'
 
 function statusLine(version, placedAll, progress, outOfDate) {
-  if (version.status === 'PUBLISHED') return `Published ${formatDateTime(version.publishedAt)}.`
-  if (version.status === 'SUPERSEDED') return 'Replaced by a newer published timetable.'
-  if (outOfDate) return 'Fix these problems, then generate it again.'
+  if (version.status === 'PUBLISHED') return `Published ${formatDateTime(version.publishedAt)}`
+  if (version.status === 'SUPERSEDED') return 'Replaced by a newer published timetable'
+  if (outOfDate) return 'Fix these problems, then generate it again'
   if (version.status === 'REVIEWED') return `Approved by ${version.reviewedBy}. Ready to publish.`
-  if (!placedAll) return 'Every paper must be placed before it can be approved.'
+  if (!placedAll) return 'Every paper must be placed before it can be approved'
   if (progress.approverIds.length === 0) return `There is no ${progress.approverPost}. Ask an administrator to appoint one.`
-  return version.submittedAt ? `Waiting for ${approverLabel(progress)} to approve it.` : 'Not sent for approval yet.'
+  return version.submittedAt ? `Waiting for ${approverLabel(progress)} to approve it` : 'Not sent for approval yet'
 }
 
 // One step at a time: the bar offers only what this person can do to this version now.
@@ -70,13 +69,13 @@ export default function WorkflowBar({ version, planning, progress, outOfDate, on
   const confirmations = {
     send: {
       title: `Send version ${version.versionNo} for approval?`,
-      message: `It goes to ${approverLabel(progress)} for review.`,
+      message: `It goes to ${approverLabel(progress)} for review`,
       confirmLabel: 'Send',
       onConfirm: () => run(() => submitVersion(version.id), 'Sent for approval'),
     },
     approve: {
       title: `Approve version ${version.versionNo}?`,
-      message: 'The coordinator can then publish it.',
+      message: 'The coordinator can then publish it',
       confirmLabel: 'Approve',
       onConfirm: () => run(() => approveVersion(version.id), 'Timetable approved'),
     },
@@ -96,11 +95,8 @@ export default function WorkflowBar({ version, planning, progress, outOfDate, on
           {version.reviewComment}
         </Alert>
       )}
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-line px-4 py-2.5">
-        <div className="flex min-w-0 items-center gap-3">
-          <StatusBadge status={version.status} />
-          <p className="text-callout text-ink-secondary">{statusLine(version, placedAll, progress, outOfDate)}</p>
-        </div>
+      <div className="flex min-h-control flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="min-w-0 text-callout text-ink-secondary">{statusLine(version, placedAll, progress, outOfDate)}</p>
         {(canAct || canReturn || nextPerson) && (
           <div className="flex flex-wrap items-center gap-2">
             {nextPerson && <ContinueAsDemo match={nextPerson} to={version.status === 'PUBLISHED' ? '/my/duties' : undefined} />}

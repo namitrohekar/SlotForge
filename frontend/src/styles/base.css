@@ -15,7 +15,7 @@
     min-height: 100dvh;
     font-size: var(--text-body);
     line-height: var(--text-body--line-height);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   h1, h2, h3, h4 {
@@ -87,19 +87,9 @@
     animation: sf-page-in var(--spring-snap-duration) var(--spring-snap) both;
   }
 
-  /* Translucency is only for bars that float over scrolling content. */
-  .sf-material {
-    background: color-mix(in srgb, var(--sf-surface) 80%, transparent);
-    -webkit-backdrop-filter: saturate(170%) blur(18px);
-    backdrop-filter: saturate(170%) blur(18px);
-  }
-
-  @media (prefers-reduced-transparency: reduce) {
-    .sf-material {
-      background: var(--sf-surface);
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
-    }
+  /* Bars that stay over scrolling content. */
+  .sf-bar {
+    background: var(--sf-surface);
   }
 
   /* Grows out of the control that opened it, and returns the same way. */

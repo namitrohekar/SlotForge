@@ -68,10 +68,10 @@ export default function HallFormDialog({ hall, onClose, onSaved }) {
           <Input {...field('name')} maxLength={120} />
         </FormField>
         <div className="grid gap-5 sm:grid-cols-2">
-          <FormField label="Code" required hint="The short form used on timetables." error={errors.code}>
+          <FormField label="Code" required hint="The short form used on timetables" error={errors.code}>
             <Input {...field('code')} maxLength={20} autoCapitalize="characters" spellCheck={false} className="uppercase" />
           </FormField>
-          <FormField label="Exam seats" required hint="Seats usable in an exam, not the room's full capacity." error={errors.capacity}>
+          <FormField label="Exam seats" required hint="Seats usable in an exam, not the room's full capacity" error={errors.capacity}>
             <NumberInput {...field('capacity')} />
           </FormField>
           <FormField label="Building" required error={errors.building}>
@@ -81,7 +81,7 @@ export default function HallFormDialog({ hall, onClose, onSaved }) {
             <NumberInput {...field('floor')} />
           </FormField>
         </div>
-        <FormField label="Status" hint="Only available halls are used when a timetable is generated." error={errors.status}>
+        <FormField label="Status" hint="Only available halls are used when a timetable is generated" error={errors.status}>
           <Select {...field('status')}>
             <option value="AVAILABLE">Available</option>
             <option value="MAINTENANCE">Maintenance</option>

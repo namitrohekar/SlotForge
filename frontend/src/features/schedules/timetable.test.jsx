@@ -111,7 +111,7 @@ describe('Timetable', () => {
     listVersions.mockResolvedValue([version])
     renderTab({ session, canEdit: false })
 
-    expect(await screen.findByText('Every paper must be placed before it can be approved.')).toBeInTheDocument()
+    expect(await screen.findByText('Every paper must be placed before it can be approved')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Send back' })).not.toBeInTheDocument()
   })
@@ -122,7 +122,7 @@ describe('Timetable', () => {
     submitVersion.mockResolvedValue()
     renderTab({ session, canEdit: true, reloadSession: vi.fn() })
 
-    expect(await screen.findByText('Not sent for approval yet.')).toBeInTheDocument()
+    expect(await screen.findByText('Not sent for approval yet')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Send for approval' }))
     await userEvent.click(within(screen.getByRole('dialog', { name: 'Send version 2 for approval?' })).getByRole('button', { name: 'Send' }))
 
@@ -134,7 +134,7 @@ describe('Timetable', () => {
     listVersions.mockResolvedValue([unsent])
     renderTab({ session, canEdit: false })
 
-    expect(await screen.findByText('Not sent for approval yet.')).toBeInTheDocument()
+    expect(await screen.findByText('Not sent for approval yet')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Send back' })).not.toBeInTheDocument()
   })
@@ -143,7 +143,7 @@ describe('Timetable', () => {
     signInAs('EXAM_COORDINATOR')
     listVersions.mockResolvedValue([complete])
     renderTab()
-    await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it.')
+    await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it')
     expect(screen.queryByRole('button', { name: 'Send for approval' })).not.toBeInTheDocument()
     cleanup()
 
@@ -183,7 +183,7 @@ describe('Timetable', () => {
     listVersions.mockResolvedValue([{ ...unsent, id: 6, versionNo: 3 }, complete])
     renderTab()
 
-    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it.')).toBeInTheDocument()
+    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it')).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Version 2 · Waiting for approval' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Delete version 2' })).not.toBeInTheDocument()
   })
@@ -202,7 +202,7 @@ describe('Timetable', () => {
     listVersions.mockResolvedValue([complete])
     renderTab({ session: { ...session, progress: { ...session.progress, approverIds: [99] } }, canEdit: false })
 
-    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it.')).toBeInTheDocument()
+    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Send back' })).not.toBeInTheDocument()
   })
@@ -226,7 +226,7 @@ describe('Timetable', () => {
     renderTab({ session, canEdit: false })
 
     expect(await screen.findByText('MCA301 has 1 student without a seat.')).toBeInTheDocument()
-    expect(screen.getByText('Fix these problems, then generate it again.')).toBeInTheDocument()
+    expect(screen.getByText('Fix these problems, then generate it again')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send back' })).toBeInTheDocument()
   })
@@ -254,7 +254,7 @@ describe('Timetable', () => {
     listVersions.mockResolvedValue([complete])
     renderTab()
 
-    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it.')).toBeInTheDocument()
+    expect(await screen.findByText('Waiting for Dr Rao, Head of MCA to approve it')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Publish' })).not.toBeInTheDocument()
     cleanup()
 
@@ -293,7 +293,7 @@ describe('Timetable', () => {
     listVersions.mockResolvedValue([])
     renderTab({ session: { ...session, slotCount: 0 }, canEdit: true })
 
-    expect(await screen.findByText('This session needs time slots first.')).toBeInTheDocument()
+    expect(await screen.findByText('This session needs time slots first')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Generate timetable' })).not.toBeInTheDocument()
   })
 })

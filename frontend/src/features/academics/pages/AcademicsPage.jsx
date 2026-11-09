@@ -16,7 +16,7 @@ export default function AcademicsPage() {
     <>
       <PageHeader
         title="Academic structure"
-        description="Departments, the programmes they run, the subjects they teach, and each programme’s syllabus, semester by semester."
+        description="Departments, the programmes they run, the subjects they teach, and each programme’s syllabus, semester by semester"
       />
       <SectionNav label="Academic structure" sections={sections} />
       <Outlet />

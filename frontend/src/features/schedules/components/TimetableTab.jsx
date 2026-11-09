@@ -129,14 +129,14 @@ export default function TimetableTab() {
           title="No timetable yet"
           description={
             missing === 'slots'
-              ? 'This session needs time slots first.'
+              ? 'This session needs time slots first'
               : missing === 'examinations'
-                ? 'This session needs papers first.'
-                : 'Every paper is placed so that no student has two at once, then seated in halls.'
+                ? 'This session needs papers first'
+                : 'Every paper is placed so that no student has two at once, then seated in halls'
           }
           action={
             missing ? (
-              <Link to={`../${missing}`} className="text-callout font-medium text-accent hover:underline">
+              <Link to={`../${missing}`} className="text-callout font-medium text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
                 {missing === 'slots' ? 'Go to time slots' : 'Go to papers'}
               </Link>
             ) : (
@@ -156,7 +156,7 @@ export default function TimetableTab() {
     <>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
-          <h2 data-numeric className="font-serif text-title-2 font-medium">
+          <h2 data-numeric className="text-title-2">
             {current.examsScheduled} of {current.examsTotal} ready papers placed
           </h2>
           <p data-numeric className="mt-1 text-footnote text-ink-tertiary">

@@ -72,7 +72,7 @@ export default function SlotsTab() {
         <EmptyState
           icon={CalendarClock}
           title="No time slots yet"
-          description="Slots are the periods papers can be placed in."
+          description="Slots are the periods papers can be placed in"
           action={canEdit ? generate : undefined}
         />
       ) : (
@@ -97,7 +97,7 @@ export default function SlotsTab() {
                 <ul>
                   {daySlots.map((slot) => (
                     <li key={slot.id} className="flex min-h-control items-center gap-3">
-                      <span data-numeric className={`text-callout ${slot.status === 'BLOCKED' ? 'text-ink-tertiary' : 'text-ink'}`}>
+                      <span className={`font-mono text-caption ${slot.status === 'BLOCKED' ? 'text-ink-tertiary' : 'text-ink'}`}>
                         {timeRange(slot)}
                       </span>
                       {slot.status === 'OPEN' && shortest && minutesOf(slot) < shortest && <Badge tone="warning">Too short</Badge>}
@@ -163,7 +163,7 @@ export default function SlotsTab() {
       <ConfirmDialog
         open={Boolean(deletion.target)}
         title={`Delete ${deletion.target?.name ?? ''}?`}
-        message="This cannot be undone."
+        message="This cannot be undone"
         confirmLabel="Delete"
         loading={deletion.busy}
         onConfirm={deletion.confirm}

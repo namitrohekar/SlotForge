@@ -32,12 +32,12 @@ function Status({ health, checking, onCheck }) {
     <div className="flex flex-col gap-8">
       {behind && (
         <Alert tone="danger" title="The database is behind the code">
-          Schema version {health.schemaVersion} is applied, but this code needs {health.requiredSchemaVersion}.
+          Schema version {health.schemaVersion} is applied, but this code needs {health.requiredSchemaVersion}
         </Alert>
       )}
       <div className={layout}>
         <section aria-label="Status">
-          <p className="flex items-center gap-2.5 font-serif text-title-1 font-medium">
+          <p className="flex items-center gap-2.5 text-title-1">
             <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-success" />
             {health.status === 'UP' ? 'Connected' : health.status}
           </p>

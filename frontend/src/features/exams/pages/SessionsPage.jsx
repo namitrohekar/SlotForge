@@ -24,7 +24,7 @@ const columns = [
     primary: true,
     sortable: true,
     render: (session) => (
-      <Link to={`/sessions/${session.id}`} className="rounded-sm text-ink hover:text-accent hover:underline">
+      <Link to={`/sessions/${session.id}`} className="rounded-sm text-ink hover:text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
         {session.name}
       </Link>
     ),
@@ -53,7 +53,7 @@ export default function SessionsPage() {
     <>
       <PageHeader
         title="Exam sessions"
-        description="Each session holds its own dates, rules, slots and papers."
+        description="Each session holds its own dates, rules, slots and papers"
         actions={
           canEdit && (
             <Button icon={Plus} onClick={() => setCreating(true)}>
@@ -67,7 +67,7 @@ export default function SessionsPage() {
         <SearchInput label="Search sessions" value={query.q} onSearch={(value) => setFilter('q', value)} />
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Exam sessions"
           columns={columns}
@@ -82,7 +82,7 @@ export default function SessionsPage() {
             <EmptyState
               icon={CalendarDays}
               title={query.q ? 'No sessions match' : 'No exam sessions yet'}
-              description={query.q ? 'Try another name.' : 'A timetable starts with a session: its dates and its rules.'}
+              description={query.q ? 'Try another name' : 'A timetable starts with a session: its dates and its rules'}
             />
           }
         />

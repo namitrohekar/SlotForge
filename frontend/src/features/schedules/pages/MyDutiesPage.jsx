@@ -19,18 +19,18 @@ import { addUnavailability, listMyDuties, listMyUnavailability, removeUnavailabi
 
 function DutyList({ duties }) {
   if (duties.length === 0) {
-    return <EmptyState icon={CalendarCheck} title="No duties yet" description="Your invigilation duties appear here once a timetable is published." />
+    return <EmptyState icon={CalendarCheck} title="No duties yet" description="Your invigilation duties appear here once a timetable is published" />
   }
   return (
-    <ul className="overflow-hidden rounded-lg border border-line">
+    <ul className="border-y border-line">
       {duties.map((duty) => (
         <li
           key={`${duty.date}-${duty.start}-${duty.hallCode}`}
-          className="grid gap-x-6 gap-y-1 border-b border-line px-4 py-3 last:border-b-0 sm:grid-cols-[12rem_minmax(0,1fr)]"
+          className="grid gap-x-6 gap-y-1 border-b border-line py-3 last:border-b-0 sm:grid-cols-[12rem_minmax(0,1fr)]"
         >
           <div data-numeric>
             <p className="text-callout font-medium text-ink">{formatDay(duty.date)}</p>
-            <p className="text-footnote text-ink-tertiary">
+            <p className="font-mono text-caption text-ink-tertiary">
               {formatTime(duty.start)} – {formatTime(duty.end)}
             </p>
           </div>
@@ -89,10 +89,10 @@ function UnavailableDates({ onSaved }) {
 
   return (
     <section aria-labelledby="unavailable" className="mt-10">
-      <h2 id="unavailable" className="font-serif text-title-2 font-medium">
+      <h2 id="unavailable" className="text-title-2">
         Dates you cannot invigilate
       </h2>
-      <p className="mt-1 mb-4 text-callout text-ink-secondary">Nobody will be given a duty on these dates in any timetable generated from now on.</p>
+      <p className="mt-1 mb-4 text-callout text-ink-secondary">Nobody will be given a duty on these dates in any timetable generated from now on</p>
 
       <form noValidate onSubmit={handleSubmit} className="grid items-start gap-3 sm:grid-cols-[10rem_10rem_minmax(0,1fr)_auto]">
         <FormField label="From" required error={errors.fromDate}>
@@ -116,9 +116,9 @@ function UnavailableDates({ onSaved }) {
 
       {error && <ErrorState message={error.message} onRetry={reload} />}
       {data?.length > 0 && (
-        <ul className="mt-4 overflow-hidden rounded-lg border border-line">
+        <ul className="mt-4 border-y border-line">
           {data.map((entry) => (
-            <li key={entry.id} className="flex items-center justify-between gap-4 border-b border-line px-4 py-2.5 last:border-b-0">
+            <li key={entry.id} className="flex items-center justify-between gap-4 border-b border-line py-2.5 last:border-b-0">
               <span className="min-w-0">
                 <span data-numeric className="block text-callout text-ink">
                   {formatDay(entry.fromDate)}
@@ -140,7 +140,7 @@ export default function MyDutiesPage() {
 
   return (
     <>
-      <PageHeader title="My duties" description="Where and when you are invigilating, from published timetables." />
+      <PageHeader title="My duties" description="Where and when you are invigilating, from published timetables" />
       {error && <ErrorState message={error.message} onRetry={reload} />}
       {!data && !error && <Skeleton className="h-40 w-full rounded-lg" />}
       {data && <DutyList duties={data} />}

@@ -25,7 +25,7 @@ const columns = [
     primary: true,
     sortable: true,
     render: (curriculum) => (
-      <Link to={`/academics/curricula/${curriculum.id}`} className="rounded-sm text-ink hover:text-accent hover:underline">
+      <Link to={`/academics/curricula/${curriculum.id}`} className="rounded-sm text-ink hover:text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
         {curriculum.name}
       </Link>
     ),
@@ -87,7 +87,7 @@ export default function CurriculaTab() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Curricula"
           columns={columns}
@@ -104,8 +104,8 @@ export default function CurriculaTab() {
               title={filtered ? 'No curricula match' : 'No curricula yet'}
               description={
                 filtered
-                  ? 'Try another name or programme.'
-                  : 'A curriculum sets which subjects a programme teaches in each semester.'
+                  ? 'Try another name or programme'
+                  : 'A curriculum sets which subjects a programme teaches in each semester'
               }
             />
           }

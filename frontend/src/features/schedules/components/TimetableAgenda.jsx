@@ -6,16 +6,16 @@ export default function TimetableAgenda({ entries, onOpen }) {
   const days = [...new Set(entries.map((entry) => entry.date))]
 
   return (
-    <ol className="space-y-6">
+    <ol className="space-y-8">
       {days.map((date) => (
         <li key={date}>
           <h3 className="mb-2 text-title-3">{formatDay(date)}</h3>
-          <ul className="space-y-2">
+          <ul className="divide-y divide-line border-y border-line">
             {entries
               .filter((entry) => entry.date === date)
               .map((entry) => (
                 <li key={entry.examinationId}>
-                  <p data-numeric className="mb-1 text-footnote text-ink-tertiary">
+                  <p className="px-3 pt-3 font-mono text-caption text-ink-tertiary">
                     {formatTime(entry.start)} – {formatTime(entry.end)}
                   </p>
                   <ExamCard entry={entry} onOpen={onOpen} />

@@ -19,7 +19,7 @@ import DepartmentFormDialog from './DepartmentFormDialog.jsx'
 
 const columns = [
   { key: 'name', header: 'Department', primary: true, sortable: true },
-  { key: 'code', header: 'Code', sortable: true },
+  { key: 'code', header: 'Code', sortable: true, mono: true },
   {
     key: 'headName',
     header: 'Head',
@@ -34,7 +34,7 @@ const columns = [
         <Link
           to={`/academics/courses?departmentId=${department.id}`}
           data-numeric
-          className="rounded-sm text-accent hover:underline"
+          className="rounded-sm text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink"
         >
           {department.courseCount}
         </Link>
@@ -51,7 +51,7 @@ const columns = [
         <Link
           to={`/academics/subjects?departmentId=${department.id}`}
           data-numeric
-          className="rounded-sm text-accent hover:underline"
+          className="rounded-sm text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink"
         >
           {department.subjectCount}
         </Link>
@@ -117,7 +117,7 @@ export default function DepartmentsTab() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-line">
+      <div>
         <DataTable
           caption="Departments"
           columns={columns}
@@ -132,7 +132,7 @@ export default function DepartmentsTab() {
             <EmptyState
               icon={Building2}
               title={query.q ? 'No departments match' : 'No departments yet'}
-              description={query.q ? 'Try another name or code.' : 'Departments come first: every programme and subject belongs to one.'}
+              description={query.q ? 'Try another name or code' : 'Departments come first: every programme and subject belongs to one'}
             />
           }
         />
