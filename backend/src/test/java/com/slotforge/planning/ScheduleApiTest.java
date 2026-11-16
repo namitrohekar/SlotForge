@@ -75,6 +75,15 @@ class ScheduleApiTest {
     }
 
     @Test
+    void preflightAndTheBaselineAreForThePeopleWhoPlanAndReview() throws Exception {
+        when(planning.preflight(1L)).thenReturn(List.of());
+
+        mvc.perform(get("/api/exam-sessions/1/planning/preflight").with(authentication(signedIn(3L, Role.HOD)))).andExpect(status().isOk());
+        mvc.perform(get("/api/exam-sessions/1/planning/preflight").with(authentication(signedIn(4L, Role.FACULTY)))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/exam-sessions/1/planning/baseline").with(authentication(signedIn(6L, Role.STUDENT)))).andExpect(status().isForbidden());
+    }
+
+    @Test
     void onlyApproversHavePastDecisions() throws Exception {
         when(schedules.decidedBy(3L)).thenReturn(List.of());
 

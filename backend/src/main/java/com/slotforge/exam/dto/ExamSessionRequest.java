@@ -13,5 +13,8 @@ public record ExamSessionRequest(
         @NotNull LocalDate startDate,
         @NotNull LocalDate endDate,
         @NotNull @Min(1) @Max(4) Integer maxExamsPerStudentPerDay,
-        @NotNull @Min(0) @Max(14) Integer heavyGapDays) {
+        @NotNull @Min(0) @Max(14) Integer heavyGapDays,
+        // Optional, so a client that does not know the staffing rules leaves them as they are.
+        @Min(1) @Max(200) Integer studentsPerInvigilator,
+        @Min(1) @Max(40) Integer maxDutiesPerInvigilator) {
 }

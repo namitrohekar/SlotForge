@@ -2,8 +2,12 @@ package com.slotforge.planning.controller;
 
 import com.slotforge.auth.security.Access;
 import com.slotforge.auth.security.AppPrincipal;
+import java.util.List;
+
 import com.slotforge.planning.comparison.AlgorithmComparison;
+import com.slotforge.planning.dto.BaselineResponse;
 import com.slotforge.planning.dto.RunResponse;
+import com.slotforge.planning.preflight.FeasibilityAnalyzer;
 import com.slotforge.planning.service.PlanningService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +30,18 @@ public class PlanningController {
     @PreAuthorize(Access.COORDINATOR)
     public RunResponse generate(@AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id) {
         return planning.generate(actor.id(), id);
+    }
+
+    @GetMapping("/api/exam-sessions/{id}/planning/preflight")
+    @PreAuthorize(Access.STUDENT_RECORDS)
+    public List<FeasibilityAnalyzer.Finding> preflight(@PathVariable Long id) {
+        return planning.preflight(id);
+    }
+
+    @GetMapping("/api/exam-sessions/{id}/planning/baseline")
+    @PreAuthorize(Access.STUDENT_RECORDS)
+    public BaselineResponse baseline(@PathVariable Long id) {
+        return planning.baseline(id);
     }
 
     @GetMapping("/api/planning/comparison")

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -428,6 +429,58 @@ class PlanningFlowTest extends PostgresIntegrationTest {
         // Generating again moves to a free hall by itself. A student who is busy still needs a person to decide.
         long rerun = idFrom(run().andExpect(status().isCreated()));
         assertThat(problems(rerun)).doesNotContain("already in use").doesNotContain("also on duty").contains("is at the same time as");
+    }
+
+    @Test
+    void aVersionRecordsHowItWasBuiltAndHowGoodItIs() throws Exception {
+        long both = student("1");
+        exam("MA", both, student("2"));
+        exam("PH", both);
+        mvc.perform(get("/api/exam-sessions/" + session + "/planning/preflight").session(coordinator))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        long version = idFrom(run().andExpect(status().isCreated()));
+
+        mvc.perform(get("/api/exam-sessions/" + session + "/schedule-versions").session(coordinator))
+                .andExpect(jsonPath("$[0].trace.length()").value(2))
+                .andExpect(jsonPath("$[0].trace[0].conflicts").value(1))
+                .andExpect(jsonPath("$[0].quality.score").isNumber())
+                .andExpect(jsonPath("$[0].quality.backToBackPairs").value(0));
+        assertThat(jdbc.sql("SELECT quality_score FROM schedule_version WHERE id = ?").param(version).query(java.math.BigDecimal.class).single())
+                .isBetween(java.math.BigDecimal.ZERO, java.math.BigDecimal.valueOf(100));
+        mvc.perform(get("/api/exam-sessions/" + session + "/planning/baseline").session(coordinator))
+                .andExpect(jsonPath("$.papers").value(2))
+                .andExpect(jsonPath("$.students").value(2))
+                .andExpect(jsonPath("$.dsatur.placed").value(2))
+                .andExpect(jsonPath("$.firstFit.placed").value(2))
+                .andExpect(jsonPath("$.firstFit.ruleBreaks").value(0));
+        assertThat(count("SELECT count(*) FROM schedule_version WHERE session_id = ?", session)).as("the baseline stores nothing").isEqualTo(1);
+    }
+
+    @Test
+    void preflightSaysWhatCannotWorkBeforeAnythingIsGenerated() throws Exception {
+        // Four papers that all share one student, but only three slots on three days.
+        long sitter = student("1");
+        for (String code : List.of("MA", "PH", "CH", "EN")) exam(code, sitter);
+
+        mvc.perform(get("/api/exam-sessions/" + session + "/planning/preflight").session(coordinator))
+                .andExpect(jsonPath("$[?(@.code == 'TOO_MANY_PAPERS')].blocking").value(true))
+                .andExpect(jsonPath("$[?(@.code == 'TOO_FEW_SLOTS')]").isNotEmpty());
+    }
+
+    @Test
+    void theStaffingRulesOfASessionCanBeReadAndChanged() throws Exception {
+        String body = "{\"name\":\"Session %s\",\"startDate\":\"2026-12-07\",\"endDate\":\"2026-12-18\",\"maxExamsPerStudentPerDay\":1,"
+                .formatted(tag) + "\"heavyGapDays\":1,\"studentsPerInvigilator\":25,\"maxDutiesPerInvigilator\":4}";
+
+        mvc.perform(put("/api/exam-sessions/" + session).session(coordinator).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.studentsPerInvigilator").value(25))
+                .andExpect(jsonPath("$.maxDutiesPerInvigilator").value(4));
+        mvc.perform(put("/api/exam-sessions/" + session).session(coordinator).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(body.replace("\"studentsPerInvigilator\":25", "\"studentsPerInvigilator\":0")))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

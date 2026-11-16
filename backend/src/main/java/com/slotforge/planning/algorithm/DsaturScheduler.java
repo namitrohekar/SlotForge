@@ -1,8 +1,11 @@
 package com.slotforge.planning.algorithm;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import com.slotforge.planning.model.Outcome;
+import com.slotforge.planning.model.PlacementStep;
 import com.slotforge.planning.model.PlanResult;
 import com.slotforge.planning.model.SchedulingProblem;
 
@@ -22,6 +25,8 @@ public final class DsaturScheduler {
     private final boolean[] abandoned;
     private long nodes;
     private long backtracks;
+    private final List<PlacementStep> path = new ArrayList<>();
+    private List<PlacementStep> deepestPath = List.of();
 
     private DsaturScheduler(SchedulingProblem problem) {
         this.problem = problem;
@@ -43,7 +48,7 @@ public final class DsaturScheduler {
 
         Outcome outcome = state.placed == state.exams.size() ? Outcome.COMPLETE
                 : end == Step.BUDGET_EXHAUSTED ? Outcome.BUDGET_EXHAUSTED : Outcome.NO_SOLUTION;
-        return state.result(outcome, nodes, backtracks);
+        return state.result(outcome, nodes, backtracks, path);
     }
 
     /** A paper placed early could not see the papers placed after it, so each one is looked at again. */
@@ -63,13 +68,16 @@ public final class DsaturScheduler {
         if (nodes >= budget) return Step.BUDGET_EXHAUSTED;
 
         int exam = nextExam();
-        for (int slot : state.orderedLegalSlots(exam)) {
+        int[] legal = state.orderedLegalSlots(exam);
+        for (int slot : legal) {
+            path.add(state.step(exam, slot, legal.length));
             state.place(exam, slot);
             nodes++;
             rememberIfDeepest();
             Step result = neighboursStillPlaceable(exam) ? search() : Step.DEAD_END;
             if (result != Step.DEAD_END) return result;
             state.remove(exam);
+            path.remove(path.size() - 1);
             backtracks++;
             if (nodes >= budget) return Step.BUDGET_EXHAUSTED;
         }
@@ -117,6 +125,7 @@ public final class DsaturScheduler {
         if (state.placed > deepestPlaced) {
             deepestPlaced = state.placed;
             System.arraycopy(state.slotOf, 0, deepest, 0, deepest.length);
+            deepestPath = List.copyOf(path);
         }
     }
 
@@ -126,10 +135,16 @@ public final class DsaturScheduler {
         for (int exam = 0; exam < deepest.length; exam++) {
             if (deepest[exam] >= 0) state.place(exam, deepest[exam]);
         }
+        path.clear();
+        path.addAll(deepestPath);
         for (int exam = nextExam(); exam >= 0; exam = nextExam()) {
             int[] slots = state.orderedLegalSlots(exam);
-            if (slots.length == 0) abandoned[exam] = true;
-            else state.place(exam, slots[0]);
+            if (slots.length == 0) {
+                abandoned[exam] = true;
+            } else {
+                path.add(state.step(exam, slots[0], slots.length));
+                state.place(exam, slots[0]);
+            }
         }
     }
 }

@@ -61,12 +61,16 @@ public class ScheduleQueryService {
                 WHERE v.session_id = :session
                 ORDER BY v.version_no DESC""")
                 .param("session", sessionId)
-                .query((row, index) -> new VersionResponse(row.getLong(1), row.getInt(2), row.getString(3),
-                        row.getObject(4, OffsetDateTime.class), row.getObject(5, Integer.class), row.getObject(6, Integer.class),
-                        row.getObject(7, Integer.class), row.getObject(8, Long.class), row.getObject(9, Long.class),
-                        row.getObject(10, Long.class), unplaced(row.getString(11)), row.getString(12), row.getString(13),
-                        row.getObject(14, OffsetDateTime.class), row.getObject(15, OffsetDateTime.class), row.getObject(16, OffsetDateTime.class),
-                        row.getString(17), row.getString(18), row.getString(19), row.getInt(20)))
+                .query((row, index) -> {
+                    RunReport report = report(row.getString(11));
+                    return new VersionResponse(row.getLong(1), row.getInt(2), row.getString(3),
+                            row.getObject(4, OffsetDateTime.class), row.getObject(5, Integer.class), row.getObject(6, Integer.class),
+                            row.getObject(7, Integer.class), row.getObject(8, Long.class), row.getObject(9, Long.class),
+                            row.getObject(10, Long.class), report.unplaced(), row.getString(12), row.getString(13),
+                            row.getObject(14, OffsetDateTime.class), row.getObject(15, OffsetDateTime.class),
+                            row.getObject(16, OffsetDateTime.class), row.getString(17), row.getString(18), row.getString(19), row.getInt(20),
+                            report.trace() == null ? List.of() : report.trace(), report.quality());
+                })
                 .list();
     }
 
@@ -202,8 +206,8 @@ public class ScheduleQueryService {
                 .list();
     }
 
-    private List<Unplaced> unplaced(String report) {
-        return report == null ? List.of() : json.readValue(report, RunReport.class).unplaced();
+    private RunReport report(String stored) {
+        return stored == null ? new RunReport(List.of(), List.of(), null) : json.readValue(stored, RunReport.class);
     }
 
     @Transactional(readOnly = true)

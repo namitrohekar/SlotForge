@@ -217,6 +217,8 @@ public class ExamSessionService {
         session.setEndDate(end);
         session.setMaxExamsPerStudentPerDay(request.maxExamsPerStudentPerDay());
         session.setHeavyGapDays(request.heavyGapDays());
+        if (request.studentsPerInvigilator() != null) session.setStudentsPerInvigilator(request.studentsPerInvigilator());
+        if (request.maxDutiesPerInvigilator() != null) session.setMaxDutiesPerInvigilator(request.maxDutiesPerInvigilator());
     }
 
     private ExamSessionResponse withCounts(ExamSession session) {
@@ -226,7 +228,8 @@ public class ExamSessionService {
                 QuerySupport.counts(id, sessions::examinationCounts).getOrDefault(session.getId(), 0L));
     }
 
-    private ExamSession find(Long id) {
+    /** The session itself, for services that read it without changing it. */
+    public ExamSession find(Long id) {
         return sessions.findById(id).orElseThrow(() -> ApiException.notFound("Exam session", id));
     }
 }

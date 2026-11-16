@@ -4,6 +4,8 @@ const data = (response) => response.data
 
 export const generateTimetable = (sessionId) => api.post(`/exam-sessions/${sessionId}/planning/runs`).then(data)
 export const fetchAlgorithmComparison = () => api.get('/planning/comparison').then(data)
+export const fetchPreflight = (sessionId) => api.get(`/exam-sessions/${sessionId}/planning/preflight`).then(data)
+export const fetchBaseline = (sessionId) => api.get(`/exam-sessions/${sessionId}/planning/baseline`).then(data)
 export const listVersions = (sessionId) => api.get(`/exam-sessions/${sessionId}/schedule-versions`).then(data)
 export const listEntries = (versionId) => api.get(`/schedule-versions/${versionId}/entries`).then(data)
 export const listSeating = (versionId) => api.get(`/schedule-versions/${versionId}/seating`).then(data)

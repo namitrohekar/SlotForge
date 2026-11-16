@@ -16,7 +16,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery.js'
 import { toApiError } from '../../../services/apiError.js'
 import { useToastStore } from '../../../store/toastStore.js'
 import { formatDateTime } from '../../../utils/format.js'
-import { deleteVersion, generateTimetable, listEntries, listVersions, listViolations } from '../services/schedulesApi.js'
+import { deleteVersion, fetchPreflight, generateTimetable, listEntries, listVersions, listViolations } from '../services/schedulesApi.js'
 import ApprovalJourney from './ApprovalJourney.jsx'
 import ExamInspectorDialog from './ExamInspectorDialog.jsx'
 import TimetableAgenda from './TimetableAgenda.jsx'
@@ -65,6 +65,22 @@ function OutOfDateNotice({ problems, published }) {
   )
 }
 
+// Certain trouble found before any solving, so the coordinator fixes the input instead of reading it off a failed run.
+function PreflightNotice({ findings }) {
+  if (!findings?.length) return null
+  return (
+    <div className="mb-6">
+      <Alert tone="danger" title={findings.length === 1 ? 'This cannot be fully scheduled as it stands' : `${findings.length} things stop this from being fully scheduled`}>
+        <ul className="mt-1 space-y-0.5">
+          {findings.map((finding) => (
+            <li key={finding.message}>{finding.message}</li>
+          ))}
+        </ul>
+      </Alert>
+    </div>
+  )
+}
+
 export default function TimetableTab() {
   const { session, reloadSession, canEdit } = useOutletContext()
   const toast = useToastStore((state) => state.push)
@@ -80,6 +96,7 @@ export default function TimetableTab() {
   const checkedId = checked && current.examsScheduled === current.examsTotal ? currentId : null
   const violations = useApi(useCallback(() => (checkedId ? listViolations(checkedId) : Promise.resolve([])), [checkedId]))
   const problems = violations.data ?? []
+  const preflight = useApi(useCallback(() => (canEdit ? fetchPreflight(session.id) : Promise.resolve([])), [canEdit, session.id]))
   const [generating, setGenerating] = useState(false)
   const [nothingPlaced, setNothingPlaced] = useState(null)
   const [inspected, setInspected] = useState(null)
@@ -125,6 +142,7 @@ export default function TimetableTab() {
     return (
       <>
         <LeftOutNotice papers={leftOut} />
+        <PreflightNotice findings={preflight.data} />
         {nothingPlaced && <UnplacedPanel unplaced={nothingPlaced} />}
         <EmptyState
           icon={CalendarRange}
@@ -162,7 +180,10 @@ export default function TimetableTab() {
             {current.examsScheduled} of {current.examsTotal} ready papers placed
           </h2>
           <p data-numeric className="mt-1 text-footnote text-ink-tertiary">
-            {runSummary(current)}
+            {runSummary(current)} ·{' '}
+            <Link to={`../explained?version=${current.id}`} className="rounded-sm text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
+              How it was built
+            </Link>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -217,6 +238,7 @@ export default function TimetableTab() {
         }}
       />
 
+      <PreflightNotice findings={preflight.data} />
       <OutOfDateNotice problems={problems} published={current.status === 'PUBLISHED'} />
       <LeftOutNotice papers={leftOut} />
       {nothingPlaced && <UnplacedPanel unplaced={nothingPlaced} />}

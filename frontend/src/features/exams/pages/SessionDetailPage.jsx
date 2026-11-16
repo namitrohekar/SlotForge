@@ -12,6 +12,7 @@ import { formatDate } from '../../../utils/format.js'
 import { hasAnyRole } from '../../../utils/roles.js'
 import NextStepBanner from '../components/NextStepBanner.jsx'
 import SessionActionsMenu from '../components/SessionActionsMenu.jsx'
+import SessionRules from '../components/SessionRules.jsx'
 import SessionSteps from '../components/SessionSteps.jsx'
 import { nextStep, sessionSteps } from '../sessionSteps.js'
 import { getSession } from '../services/examsApi.js'
@@ -60,6 +61,7 @@ export default function SessionDetailPage() {
           <Alert tone="warning">This session is cancelled. Everything in it is kept, but nothing can change until it is reopened.</Alert>
         </div>
       )}
+      <SessionRules session={session} />
       <SessionSteps steps={sessionSteps(session, canSeeTimetable)} />
       {next && next.to !== pathname.split('/').pop() && <NextStepBanner next={next} base={`/sessions/${id}`} />}
       <Outlet context={{ session, reloadSession: reload, canEdit: isCoordinator && session.status === 'PLANNING' }} />

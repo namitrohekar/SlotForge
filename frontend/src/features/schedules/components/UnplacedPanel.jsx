@@ -6,6 +6,7 @@ const REASONS = {
   DAILY_LIMIT: 'a student is at the daily limit',
   HEAVY_GAP: 'too close to a student’s other heavy paper',
   CAPACITY: 'not enough hall seats',
+  STAFFING: 'not enough invigilators free',
 }
 
 const plural = (count) => `${count} ${count === 1 ? 'slot' : 'slots'}`

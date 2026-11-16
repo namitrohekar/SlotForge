@@ -39,6 +39,7 @@ export const router = createBrowserRouter([
                   { path: 'slots', lazy: page(() => import('../features/exams/components/SlotsTab.jsx')) },
                   { path: 'examinations', lazy: page(() => import('../features/exams/components/ExaminationsTab.jsx')) },
                   { path: 'timetable', lazy: page(() => import('../features/schedules/components/TimetableTab.jsx')) },
+                  { path: 'explained', lazy: page(() => import('../features/schedules/components/ExplainedTab.jsx')) },
                 ],
               },
             ],

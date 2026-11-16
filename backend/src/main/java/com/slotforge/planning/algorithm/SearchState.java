@@ -13,6 +13,7 @@ import java.util.stream.IntStream;
 
 import com.slotforge.planning.allocation.HallPacker;
 import com.slotforge.planning.allocation.HallPacker.Demand;
+import com.slotforge.planning.allocation.InvigilatorAllocator;
 import com.slotforge.planning.graph.ConflictGraph;
 import com.slotforge.planning.graph.ConflictGraphBuilder;
 import com.slotforge.planning.model.Constraint;
@@ -20,10 +21,12 @@ import com.slotforge.planning.model.ExamNode;
 import com.slotforge.planning.model.HallInfo;
 import com.slotforge.planning.model.HallSeats;
 import com.slotforge.planning.model.Outcome;
+import com.slotforge.planning.model.PlacementStep;
 import com.slotforge.planning.model.PlanResult;
 import com.slotforge.planning.model.Rejection;
 import com.slotforge.planning.model.SchedulingProblem;
 import com.slotforge.planning.model.SlotInfo;
+import com.slotforge.planning.model.Staffing;
 import com.slotforge.planning.model.Unplaced;
 
 /**
@@ -59,6 +62,9 @@ final class SearchState {
     private final int[] slotVersion;
     private final int[][] fitCheckedAt;
     private final boolean[][] fits;
+    private final int[][] staffNeeded;
+    private final Staffing staffing;
+    private final int[] staffFree;
 
     SearchState(SchedulingProblem problem) {
         exams = problem.exams().stream().sorted(Comparator.comparingLong(ExamNode::id)).toList();
@@ -80,6 +86,11 @@ final class SearchState {
         clashes = new int[examCount][slotCount];
         slotVersion = new int[slotCount];
         fits = new boolean[examCount][slotCount];
+        staffNeeded = new int[examCount][slotCount];
+        staffing = problem.staffing();
+        staffFree = slots.stream()
+                .mapToInt(slot -> (int) staffing.invigilators().stream().filter(person -> !person.unavailableSlots().contains(slot.id())).count())
+                .toArray();
         fitCheckedAt = new int[examCount][slotCount];
         for (int[] row : fitCheckedAt) Arrays.fill(row, -1);
 
@@ -192,7 +203,9 @@ final class SearchState {
         int day = dayOfSlot[slot];
         if (atDailyLimit[exam][day] > 0) return Constraint.DAILY_LIMIT;
         if (heavyBlocked[exam][day] > 0) return Constraint.HEAVY_GAP;
-        return hallsFit(exam, slot) ? null : Constraint.CAPACITY;
+        if (!hallsFit(exam, slot)) return Constraint.CAPACITY;
+        // A slot whose halls nobody is free to invigilate would only be refused later, when the timetable is checked.
+        return staffing.checked() && staffNeeded[exam][slot] > staffFree[slot] ? Constraint.STAFFING : null;
     }
 
     int legalCount(int exam) {
@@ -251,7 +264,10 @@ final class SearchState {
             fitCheckedAt[exam][slot] = slotVersion[slot];
             List<Demand> demands = demands(slot);
             demands.add(new Demand(exams.get(exam).id(), exams.get(exam).enrolled()));
-            fits[exam][slot] = HallPacker.pack(demands, hallsBySlot.get(slot)).isPresent();
+            var packed = HallPacker.pack(demands, hallsBySlot.get(slot));
+            fits[exam][slot] = packed.isPresent();
+            staffNeeded[exam][slot] = packed.map(plan -> plan.values().stream().flatMap(List::stream)
+                    .mapToInt(hall -> InvigilatorAllocator.needed(hall.seats(), staffing.studentsPerInvigilator())).sum()).orElse(0);
         }
         return fits[exam][slot];
     }
@@ -283,12 +299,17 @@ final class SearchState {
     }
 
     /** The finished timetable, with the reasons for any paper left without a slot. */
-    PlanResult result(Outcome outcome, long nodes, long backtracks) {
+    /** Taken just before a paper is placed, so it records how cornered the paper was when it was chosen. */
+    PlacementStep step(int exam, int slot, int legalSlots) {
+        return new PlacementStep(exams.get(exam).id(), saturation[exam], legalSlots, graph.degree(exam), slots.get(slot).id());
+    }
+
+    PlanResult result(Outcome outcome, long nodes, long backtracks, List<PlacementStep> trace) {
         List<Unplaced> unplaced = new ArrayList<>();
         for (int exam = 0; exam < exams.size(); exam++) {
             if (slotOf[exam] < 0) unplaced.add(unplaced(exam));
         }
-        return new PlanResult(outcome, slotsByExam(), hallsByExam(), unplaced, nodes, backtracks);
+        return new PlanResult(outcome, slotsByExam(), hallsByExam(), unplaced, nodes, backtracks, List.copyOf(trace));
     }
 
     private Unplaced unplaced(int exam) {
@@ -303,6 +324,9 @@ final class SearchState {
             }
             if (reason == Constraint.CAPACITY && !examples.containsKey(reason)) {
                 examples.put(reason, capacityExample(exam, slot));
+            }
+            if (reason == Constraint.STAFFING && !examples.containsKey(reason)) {
+                examples.put(reason, "needs " + staffNeeded[exam][slot] + " invigilators in that slot, " + staffFree[slot] + " free");
             }
         }
         List<Rejection> blockers = counts.entrySet().stream()

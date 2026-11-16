@@ -19,6 +19,7 @@ import com.slotforge.planning.model.InvigilatorInfo;
 import com.slotforge.planning.model.Rules;
 import com.slotforge.planning.model.SchedulingProblem;
 import com.slotforge.planning.model.SlotInfo;
+import com.slotforge.planning.model.Staffing;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
@@ -51,12 +52,10 @@ public class ProblemLoader {
                         paper.minutes(), paper.earliest(), paper.latest()))
                 .toList();
         Rules rules = new Rules(session.getMaxExamsPerStudentPerDay(), session.getHeavyGapDays(), NODE_BUDGET);
-        int[] staffing = jdbc.sql("SELECT students_per_invigilator, max_duties_per_invigilator FROM exam_session WHERE id = :session")
-                .param("session", session.getId())
-                .query((row, index) -> new int[] {row.getInt(1), row.getInt(2)})
-                .single();
-        return new Snapshot(new SchedulingProblem(exams, slots(session.getId()), halls(session.getId()), rules), rosters,
-                invigilators(session.getId()), staffing[0], staffing[1]);
+        List<InvigilatorInfo> invigilators = invigilators(session.getId());
+        Staffing staffing = new Staffing(invigilators, session.getStudentsPerInvigilator(), session.getMaxDutiesPerInvigilator());
+        return new Snapshot(new SchedulingProblem(exams, slots(session.getId()), halls(session.getId()), rules, staffing), rosters,
+                invigilators, staffing.studentsPerInvigilator(), staffing.maxDuties());
     }
 
     private Map<Long, List<Long>> rosters(long sessionId) {

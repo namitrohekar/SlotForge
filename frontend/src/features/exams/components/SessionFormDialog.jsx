@@ -24,6 +24,8 @@ export default function SessionFormDialog({ session, onClose, onSaved }) {
       endDate: session?.endDate ?? '',
       maxExamsPerStudentPerDay: String(session?.maxExamsPerStudentPerDay ?? 1),
       heavyGapDays: String(session?.heavyGapDays ?? 1),
+      studentsPerInvigilator: String(session?.studentsPerInvigilator ?? 30),
+      maxDutiesPerInvigilator: String(session?.maxDutiesPerInvigilator ?? 8),
     },
     validate: (v) => ({
       name: required(v.name, 'Name'),
@@ -47,6 +49,8 @@ export default function SessionFormDialog({ session, onClose, onSaved }) {
               : undefined,
       maxExamsPerStudentPerDay: wholeNumberBetween(v.maxExamsPerStudentPerDay, 1, 4),
       heavyGapDays: wholeNumberBetween(v.heavyGapDays, 0, 14),
+      studentsPerInvigilator: wholeNumberBetween(v.studentsPerInvigilator, 1, 200),
+      maxDutiesPerInvigilator: wholeNumberBetween(v.maxDutiesPerInvigilator, 1, 40),
     }),
     onSubmit: async (v) => {
       const body = {
@@ -55,6 +59,8 @@ export default function SessionFormDialog({ session, onClose, onSaved }) {
         endDate: v.endDate,
         maxExamsPerStudentPerDay: Number(v.maxExamsPerStudentPerDay),
         heavyGapDays: Number(v.heavyGapDays),
+        studentsPerInvigilator: Number(v.studentsPerInvigilator),
+        maxDutiesPerInvigilator: Number(v.maxDutiesPerInvigilator),
       }
       const saved = editing ? await updateSession(session.id, body) : await createSession(body)
       onSaved(editing ? 'Session updated' : `${saved.name} was added`, saved)
@@ -99,6 +105,12 @@ export default function SessionFormDialog({ session, onClose, onSaved }) {
           </FormField>
           <FormField label="Rest days between heavy papers" required error={errors.heavyGapDays}>
             <NumberInput {...field('heavyGapDays')} />
+          </FormField>
+          <FormField label="Students per invigilator" required hint="One more invigilator for every started group" error={errors.studentsPerInvigilator}>
+            <NumberInput {...field('studentsPerInvigilator')} />
+          </FormField>
+          <FormField label="Most duties per invigilator" required error={errors.maxDutiesPerInvigilator}>
+            <NumberInput {...field('maxDutiesPerInvigilator')} />
           </FormField>
         </div>
       </form>

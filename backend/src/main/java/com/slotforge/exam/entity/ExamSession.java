@@ -42,6 +42,10 @@ public class ExamSession {
 
     private Integer heavyGapDays;
 
+    private Integer studentsPerInvigilator = 30;
+
+    private Integer maxDutiesPerInvigilator = 8;
+
     @CreationTimestamp
     @Column(updatable = false)
     private Instant createdAt;

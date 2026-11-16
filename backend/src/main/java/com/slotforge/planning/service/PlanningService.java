@@ -3,12 +3,19 @@ package com.slotforge.planning.service;
 import com.slotforge.common.exception.ApiException;
 import com.slotforge.exam.entity.ExamSession;
 import com.slotforge.exam.service.ExamSessionService;
+import java.util.List;
+import java.util.function.Function;
+
 import com.slotforge.planning.algorithm.DsaturScheduler;
+import com.slotforge.planning.algorithm.GreedyScheduler;
 import com.slotforge.planning.comparison.AlgorithmComparison;
+import com.slotforge.planning.dto.BaselineResponse;
 import com.slotforge.planning.dto.RunResponse;
+import com.slotforge.planning.model.ExamNode;
 import com.slotforge.planning.model.PlanResult;
 import com.slotforge.planning.model.SchedulingProblem;
 import com.slotforge.planning.model.SlotInfo;
+import com.slotforge.planning.preflight.FeasibilityAnalyzer;
 import com.slotforge.schedule.service.PlanPersister;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -43,6 +50,25 @@ public class PlanningService {
             jdbc.sql("UPDATE scheduling_run SET status = 'FAILED', finished_at = now() WHERE id = :run").param("run", runId).update();
             throw ex;
         }
+    }
+
+    /** What is certain to go wrong if this session is generated as it stands. Reads only. */
+    public List<FeasibilityAnalyzer.Finding> preflight(Long sessionId) {
+        return FeasibilityAnalyzer.analyse(loader.load(sessions.find(sessionId)).problem());
+    }
+
+    /** DSATUR and first-fit on this session's current data, so the choice of algorithm is shown on real papers. Stores nothing. */
+    public BaselineResponse baseline(Long sessionId) {
+        SchedulingProblem problem = loader.load(sessions.find(sessionId)).problem();
+        long students = problem.exams().stream().map(ExamNode::students).flatMap(java.util.Set::stream).distinct().count();
+        return new BaselineResponse(problem.exams().size(), (int) students, (int) problem.slots().stream().filter(SlotInfo::open).count(),
+                measured(DsaturScheduler::schedule, problem), measured(GreedyScheduler::schedule, problem));
+    }
+
+    private static AlgorithmComparison.Measures measured(Function<SchedulingProblem, PlanResult> algorithm, SchedulingProblem problem) {
+        long started = System.nanoTime();
+        PlanResult plan = algorithm.apply(problem);
+        return AlgorithmComparison.measure(problem, plan, (System.nanoTime() - started) / 1_000_000.0);
     }
 
     public AlgorithmComparison.Report compareAlgorithms() {

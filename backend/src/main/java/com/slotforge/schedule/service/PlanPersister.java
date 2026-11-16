@@ -1,7 +1,9 @@
 package com.slotforge.schedule.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,8 @@ import com.slotforge.planning.model.HallInfo;
 import com.slotforge.planning.model.HallSeats;
 import com.slotforge.planning.model.PlanResult;
 import com.slotforge.planning.model.SlotInfo;
+import com.slotforge.planning.quality.QualityScorer;
+import com.slotforge.planning.quality.QualityScorer.Quality;
 import com.slotforge.planning.service.ProblemLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -48,6 +52,7 @@ public class PlanPersister {
 
         Long versionId = null;
         Integer versionNo = null;
+        Quality quality = null;
         if (placed > 0) {
             // Counted from runs, which outlive a deleted draft, so a number never comes back.
             versionNo = jdbc.sql("SELECT count(*) + 1 FROM scheduling_run WHERE session_id = :session AND status IN ('SUCCEEDED', 'PARTIAL')")
@@ -57,7 +62,9 @@ public class PlanPersister {
                     VALUES (:session, :number, :run, :actor) RETURNING id""")
                     .param("session", sessionId).param("number", versionNo).param("run", runId).param("actor", actorId)
                     .query(Long.class).single();
-            writeEntries(versionId, snapshot, plan);
+            quality = QualityScorer.score(snapshot.problem(), plan, writeEntries(versionId, snapshot, plan));
+            jdbc.sql("UPDATE schedule_version SET quality_score = :score WHERE id = :version")
+                    .param("score", quality.score()).param("version", versionId).update();
             audit.record(actorId, "SCHEDULE_GENERATED", "schedule_version", versionId, "{\"placed\":" + placed + ",\"total\":" + total + "}");
         }
 
@@ -66,7 +73,7 @@ public class PlanPersister {
                 SET status = :status, report = :report, exams_total = :total, exams_scheduled = :placed, slots_used = :slots,
                     search_nodes = :nodes, backtracks = :backtracks, duration_ms = :duration, finished_at = now()
                 WHERE id = :run""")
-                .param("status", status).param("report", json.writeValueAsString(new RunReport(plan.unplaced())))
+                .param("status", status).param("report", json.writeValueAsString(new RunReport(plan.unplaced(), plan.trace(), quality)))
                 .param("total", total).param("placed", placed).param("slots", slotsUsed)
                 .param("nodes", plan.searchNodes()).param("backtracks", plan.backtracks()).param("duration", durationMs)
                 .param("run", runId).update();
@@ -75,7 +82,8 @@ public class PlanPersister {
                 durationMs, plan.unplaced());
     }
 
-    private void writeEntries(long versionId, ProblemLoader.Snapshot snapshot, PlanResult plan) {
+    /** Returns how many duties each person in the pool was given, zeros included. */
+    private Collection<Integer> writeEntries(long versionId, ProblemLoader.Snapshot snapshot, PlanResult plan) {
         Map<Long, Integer> capacity = snapshot.problem().halls().stream().collect(Collectors.toMap(HallInfo::id, HallInfo::capacity));
         List<Object[]> seats = new ArrayList<>();
         List<InvigilatorAllocator.Duty> duties = new ArrayList<>();
@@ -106,10 +114,10 @@ public class PlanPersister {
         batch.batchUpdate("""
                 INSERT INTO student_hall_assignment (exam_schedule_id, examination_id, hall_allocation_id, student_id)
                 VALUES (?, ?, ?, ?)""", seats);
-        writeInvigilators(versionId, snapshot, duties);
+        return writeInvigilators(versionId, snapshot, duties);
     }
 
-    private void writeInvigilators(long versionId, ProblemLoader.Snapshot snapshot, List<InvigilatorAllocator.Duty> duties) {
+    private Collection<Integer> writeInvigilators(long versionId, ProblemLoader.Snapshot snapshot, List<InvigilatorAllocator.Duty> duties) {
         Map<Long, SlotInfo> slots = snapshot.problem().slots().stream().collect(Collectors.toMap(SlotInfo::id, Function.identity()));
         List<InvigilatorAllocator.Duty> inOrder = duties.stream()
                 .sorted(Comparator.comparing((InvigilatorAllocator.Duty duty) -> slots.get(duty.slotId()).date())
@@ -126,5 +134,9 @@ public class PlanPersister {
         batch.batchUpdate("""
                 INSERT INTO invigilator_assignment (hall_allocation_id, version_id, time_slot_id, user_id)
                 VALUES (?, ?, ?, ?)""", rows);
+        Map<Long, Integer> load = new HashMap<>();
+        snapshot.invigilators().forEach(person -> load.put(person.id(), 0));
+        rows.forEach(row -> load.merge((Long) row[3], 1, Integer::sum));
+        return load.values();
     }
 }

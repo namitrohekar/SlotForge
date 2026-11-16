@@ -17,6 +17,7 @@ vi.mock('../auth/services/authApi.js', () => ({
 
 vi.mock('./services/schedulesApi.js', () => ({
   generateTimetable: vi.fn(),
+  fetchPreflight: vi.fn().mockResolvedValue([]),
   listVersions: vi.fn(),
   listEntries: vi.fn(),
   listViolations: vi.fn(),
