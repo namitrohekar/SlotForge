@@ -19,6 +19,7 @@ export const navigation = [
   { label: 'Comparison', to: '/comparison', roles: PLANNERS, menu: false },
   { label: 'System', to: '/system', roles: ['ADMIN'], menu: false },
   { label: 'Audit log', to: '/audit', roles: ['ADMIN'], menu: false },
+  { label: 'Notifications', to: '/notifications', menu: false },
 ]
 
 export const TAB_BAR_LIMIT = 4

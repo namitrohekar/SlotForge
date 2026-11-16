@@ -478,6 +478,59 @@ class PlanningFlowTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void eachStepTellsThePeopleItConcernsAndNobodyElse() throws Exception {
+        long sitter = student("1");
+        long account = createUser("st", "STUDENT");
+        jdbc.sql("UPDATE student SET user_id = ? WHERE id = ?").param(account).param(sitter).update();
+        long stranger = createUser("sx", "STUDENT");
+        exam("MA", sitter);
+        long version = idFrom(run().andExpect(status().isCreated()));
+
+        submit(version).andExpect(status().isNoContent());
+        mvc.perform(get("/api/me/notifications").session(headOfDepartment))
+                .andExpect(jsonPath("$.unread").value(1))
+                .andExpect(jsonPath("$.items[0].kind").value("APPROVAL_REQUESTED"))
+                .andExpect(jsonPath("$.items[0].link").value("/sessions/" + session + "/timetable?version=" + version));
+
+        approve(version).andExpect(status().isNoContent());
+        mvc.perform(get("/api/me/notifications").session(coordinator))
+                .andExpect(jsonPath("$.unread").value(1))
+                .andExpect(jsonPath("$.items[0].kind").value("TIMETABLE_APPROVED"));
+
+        publish(version).andExpect(status().isNoContent());
+        long invigilator = jdbc.sql("SELECT user_id FROM invigilator_assignment WHERE version_id = ?").param(version).query(Long.class).single();
+        mvc.perform(get("/api/me/notifications").with(as(invigilator)))
+                .andExpect(jsonPath("$.items[0].kind").value("DUTY_ASSIGNED"))
+                .andExpect(jsonPath("$.items[0].title").value(org.hamcrest.Matchers.endsWith("you have 1 invigilation duty")))
+                .andExpect(jsonPath("$.items[0].link").value("/my/duties"));
+        mvc.perform(get("/api/me/notifications").with(as(account)))
+                .andExpect(jsonPath("$.unread").value(1))
+                .andExpect(jsonPath("$.items[0].kind").value("TIMETABLE_PUBLISHED"));
+        mvc.perform(get("/api/me/notifications").with(as(stranger))).andExpect(jsonPath("$.unread").value(0)).andExpect(jsonPath("$.items").isEmpty());
+
+        mvc.perform(post("/api/me/notifications/read").with(as(account)).with(csrf())).andExpect(status().isNoContent());
+        mvc.perform(get("/api/me/notifications").with(as(account)))
+                .andExpect(jsonPath("$.unread").value(0))
+                .andExpect(jsonPath("$.items[0].read").value(true));
+        mvc.perform(get("/api/me/notifications").with(as(invigilator))).andExpect(jsonPath("$.unread").value(1));
+    }
+
+    @Test
+    void aTimetableSentBackTellsWhoeverSentItWithTheReason() throws Exception {
+        exam("MA", student("1"));
+        long version = idFrom(run().andExpect(status().isCreated()));
+        submit(version).andExpect(status().isNoContent());
+
+        mvc.perform(post("/api/schedule-versions/" + version + "/return").session(headOfDepartment).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"comment\":\"Mathematics is too early\"}"))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/me/notifications").session(coordinator))
+                .andExpect(jsonPath("$.items[0].kind").value("TIMETABLE_RETURNED"))
+                .andExpect(jsonPath("$.items[0].body").value("Mathematics is too early"));
+    }
+
+    @Test
     void aRosterIsImportedOnlyWhenEveryRowIsGood() throws Exception {
         String programme = "C" + tag;
         String good = "roll_no,full_name,email,programme,batch\nX1%s,\"Rao, Asha\",x1%s@vjti.ac.in,%s,B\nX2%s,Bela Shah,X2%s@VJTI.AC.IN,%s,b\n"

@@ -1,9 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '../../store/authStore.js'
 import AppLayout from './AppLayout.jsx'
+
+vi.mock('../../features/notifications/services/notificationsApi.js', () => ({
+  fetchNotifications: vi.fn().mockResolvedValue({ unread: 2, items: [] }),
+}))
 import PageHeader from './PageHeader.jsx'
 
 function renderLayout() {
@@ -59,10 +63,11 @@ describe('AppLayout', () => {
     expect(document.title).toBe('Users · SlotForge')
   })
 
-  it('shows who is signed in and offers sign-out', () => {
+  it('shows who is signed in, with any new notifications', async () => {
     renderLayout()
 
     expect(screen.getByText('Demo Admin')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Account' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Account, 2 new notifications' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Notifications, 2 new', hidden: true })).toBeInTheDocument()
   })
 })

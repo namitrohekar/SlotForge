@@ -1,9 +1,12 @@
 package com.slotforge.schedule.service;
 
+import java.util.List;
+
 import com.slotforge.audit.service.AuditService;
 import com.slotforge.common.exception.ApiException;
 import com.slotforge.exam.service.ApprovalAuthority;
 import com.slotforge.exam.service.ExamSessionService;
+import com.slotforge.notification.service.NotificationService;
 import com.slotforge.schedule.validation.ScheduleValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,6 +33,7 @@ public class ScheduleWorkflowService {
     private final AuditService audit;
     private final ScheduleValidator validator;
     private final ApprovalAuthority authority;
+    private final NotificationService notifications;
 
     @Transactional
     public void submit(Long actorId, Long versionId) {
@@ -53,6 +57,8 @@ public class ScheduleWorkflowService {
         if (changed == 0) throw ApiException.conflict("ALREADY_SENT", "This timetable has already been sent for approval.");
         requireStillValid(versionId);
         audit.record(actorId, "SCHEDULE_SENT", "schedule_version", versionId, null);
+        notifications.notify(approver.userIds(), "APPROVAL_REQUESTED", sessionName(version) + ": a timetable is waiting for your approval",
+                null, timetableLink(version, versionId));
     }
 
     @Transactional
@@ -68,6 +74,8 @@ public class ScheduleWorkflowService {
         if (changed == 0) throw ApiException.conflict("VERSION_NOT_DRAFT", "Only a draft can be approved.");
         requireStillValid(versionId);
         audit.record(actorId, "SCHEDULE_APPROVED", "schedule_version", versionId, null);
+        notifications.notify(producers(versionId), "TIMETABLE_APPROVED", sessionName(version) + ": the timetable was approved and can be published",
+                null, timetableLink(version, versionId));
     }
 
     @Transactional
@@ -81,6 +89,8 @@ public class ScheduleWorkflowService {
                 .param("comment", comment.trim()).param("version", versionId).update();
         if (changed == 0) throw ApiException.conflict("VERSION_NOT_DRAFT", "This timetable is no longer waiting for approval.");
         audit.record(actorId, "SCHEDULE_RETURNED", "schedule_version", versionId, null);
+        notifications.notify(producers(versionId), "TIMETABLE_RETURNED", sessionName(version) + ": the timetable was sent back",
+                comment.trim(), timetableLink(version, versionId));
     }
 
     /** Replaces any earlier published timetable and locks the session, all together. */
@@ -99,13 +109,50 @@ public class ScheduleWorkflowService {
         jdbc.sql("UPDATE exam_session SET status = 'PUBLISHED', updated_at = now() WHERE id = :session")
                 .param("session", version.sessionId()).update();
         audit.record(actorId, "SCHEDULE_PUBLISHED", "schedule_version", versionId, null);
+        tellEveryoneInTheTimetable(sessionName(version), versionId);
     }
 
     // shortcut: paper, slot and enrolment edits wait on the session lock, but hall and staff edits do not, so one in this same instant is not seen. Lock those too if they become frequent.
     private void requireStillValid(Long versionId) {
         if (!validator.problems(versionId).isEmpty()) {
-            throw ApiException.unprocessable("TIMETABLE_OUT_OF_DATE", "This timetable has problems that must be fixed first. Fix them, then generate it again.");
+            throw ApiException.unprocessable("TIMETABLE_OUT_OF_DATE", "This timetable has problems that must be fixed first. Repair it, or fix the cause and generate again.");
         }
+    }
+
+    private String sessionName(Version version) {
+        return jdbc.sql("SELECT name FROM exam_session WHERE id = :session").param("session", version.sessionId()).query(String.class).single();
+    }
+
+    private static String timetableLink(Version version, Long versionId) {
+        return "/sessions/" + version.sessionId() + "/timetable?version=" + versionId;
+    }
+
+    /** Whoever generated the version and whoever sent it for approval: the people waiting to hear back. */
+    private List<Long> producers(Long versionId) {
+        return jdbc.sql("""
+                SELECT created_by FROM schedule_version WHERE id = :version
+                UNION
+                SELECT a.actor_user_id FROM audit_log a
+                WHERE a.entity_type = 'schedule_version' AND a.entity_id = CAST(:version AS VARCHAR) AND a.action = 'SCHEDULE_SENT'
+                  AND a.actor_user_id IS NOT NULL""")
+                .param("version", versionId).query(Long.class).list();
+    }
+
+    /** Publishing is the moment duties and seats become real, so each invigilator and each student with an account is told. */
+    private void tellEveryoneInTheTimetable(String session, Long versionId) {
+        jdbc.sql("SELECT user_id, count(*) FROM invigilator_assignment WHERE version_id = :version GROUP BY user_id")
+                .param("version", versionId)
+                .query((row, index) -> new long[] {row.getLong(1), row.getLong(2)}).list()
+                .forEach(duty -> notifications.notify(List.of(duty[0]), "DUTY_ASSIGNED",
+                        session + ": you have " + duty[1] + (duty[1] == 1 ? " invigilation duty" : " invigilation duties"), null, "/my/duties"));
+        List<Long> students = jdbc.sql("""
+                SELECT DISTINCT st.user_id
+                FROM student_hall_assignment seat
+                JOIN exam_schedule es ON es.id = seat.exam_schedule_id
+                JOIN student st ON st.id = seat.student_id
+                WHERE es.version_id = :version AND st.user_id IS NOT NULL""")
+                .param("version", versionId).query(Long.class).list();
+        notifications.notify(students, "TIMETABLE_PUBLISHED", session + ": your exam timetable is published", null, "/");
     }
 
     private static void requireEveryPaperPlaced(Version version) {
