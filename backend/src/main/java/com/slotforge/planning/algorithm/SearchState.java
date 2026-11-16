@@ -3,9 +3,12 @@ package com.slotforge.planning.algorithm;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.IntStream;
 
 import com.slotforge.planning.allocation.HallPacker;
@@ -16,8 +19,12 @@ import com.slotforge.planning.model.Constraint;
 import com.slotforge.planning.model.ExamNode;
 import com.slotforge.planning.model.HallInfo;
 import com.slotforge.planning.model.HallSeats;
+import com.slotforge.planning.model.Outcome;
+import com.slotforge.planning.model.PlanResult;
+import com.slotforge.planning.model.Rejection;
 import com.slotforge.planning.model.SchedulingProblem;
 import com.slotforge.planning.model.SlotInfo;
+import com.slotforge.planning.model.Unplaced;
 
 /**
  * A partial timetable. Exams and slots are referred to by position in their sorted lists.
@@ -273,5 +280,49 @@ final class SearchState {
         int free = hallsBySlot.get(slot).stream().mapToInt(HallInfo::capacity).sum();
         for (int other : inSlot.get(slot)) free -= exams.get(other).enrolled();
         return "needs " + exams.get(exam).enrolled() + " seats, " + Math.max(free, 0) + " free";
+    }
+
+    /** The finished timetable, with the reasons for any paper left without a slot. */
+    PlanResult result(Outcome outcome, long nodes, long backtracks) {
+        List<Unplaced> unplaced = new ArrayList<>();
+        for (int exam = 0; exam < exams.size(); exam++) {
+            if (slotOf[exam] < 0) unplaced.add(unplaced(exam));
+        }
+        return new PlanResult(outcome, slotsByExam(), hallsByExam(), unplaced, nodes, backtracks);
+    }
+
+    private Unplaced unplaced(int exam) {
+        Map<Constraint, Integer> counts = new EnumMap<>(Constraint.class);
+        Map<Constraint, String> examples = new EnumMap<>(Constraint.class);
+        for (int slot = 0; slot < slotCount(); slot++) {
+            Constraint reason = reason(exam, slot);
+            if (reason == null) continue;
+            counts.merge(reason, 1, Integer::sum);
+            if (reason == Constraint.STUDENT_CLASH && !examples.containsKey(reason)) {
+                examples.put(reason, clashExample(exam, slot));
+            }
+            if (reason == Constraint.CAPACITY && !examples.containsKey(reason)) {
+                examples.put(reason, capacityExample(exam, slot));
+            }
+        }
+        List<Rejection> blockers = counts.entrySet().stream()
+                .map(entry -> new Rejection(entry.getKey(), entry.getValue(), examples.get(entry.getKey())))
+                .toList();
+        ExamNode node = exams.get(exam);
+        return new Unplaced(node.id(), node.code(), blockers);
+    }
+
+    private Map<Long, Long> slotsByExam() {
+        Map<Long, Long> result = new LinkedHashMap<>();
+        for (int exam = 0; exam < exams.size(); exam++) {
+            if (slotOf[exam] >= 0) result.put(exams.get(exam).id(), slots.get(slotOf[exam]).id());
+        }
+        return result;
+    }
+
+    private Map<Long, List<HallSeats>> hallsByExam() {
+        Map<Long, List<HallSeats>> result = new TreeMap<>();
+        for (int slot = 0; slot < slotCount(); slot++) result.putAll(hallPlan(slot));
+        return result;
     }
 }

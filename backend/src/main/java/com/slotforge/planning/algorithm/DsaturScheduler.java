@@ -1,21 +1,10 @@
 package com.slotforge.planning.algorithm;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
-import com.slotforge.planning.model.Constraint;
-import com.slotforge.planning.model.ExamNode;
-import com.slotforge.planning.model.HallSeats;
 import com.slotforge.planning.model.Outcome;
 import com.slotforge.planning.model.PlanResult;
-import com.slotforge.planning.model.Rejection;
 import com.slotforge.planning.model.SchedulingProblem;
-import com.slotforge.planning.model.Unplaced;
 
 /**
  * DSATUR ordering inside a bounded backtracking search. Nothing here is random and the limit counts
@@ -52,13 +41,9 @@ public final class DsaturScheduler {
         if (end != Step.COMPLETE) placeWhatWeCan();
         else improveSpacing();
 
-        List<Unplaced> unplaced = new ArrayList<>();
-        for (int exam = 0; exam < state.exams.size(); exam++) {
-            if (state.slotOf[exam] < 0) unplaced.add(unplaced(exam));
-        }
-        Outcome outcome = unplaced.isEmpty() ? Outcome.COMPLETE
+        Outcome outcome = state.placed == state.exams.size() ? Outcome.COMPLETE
                 : end == Step.BUDGET_EXHAUSTED ? Outcome.BUDGET_EXHAUSTED : Outcome.NO_SOLUTION;
-        return new PlanResult(outcome, slotsByExam(), hallsByExam(), unplaced, nodes, backtracks);
+        return state.result(outcome, nodes, backtracks);
     }
 
     /** A paper placed early could not see the papers placed after it, so each one is looked at again. */
@@ -146,40 +131,5 @@ public final class DsaturScheduler {
             if (slots.length == 0) abandoned[exam] = true;
             else state.place(exam, slots[0]);
         }
-    }
-
-    private Unplaced unplaced(int exam) {
-        Map<Constraint, Integer> counts = new EnumMap<>(Constraint.class);
-        Map<Constraint, String> examples = new EnumMap<>(Constraint.class);
-        for (int slot = 0; slot < state.slotCount(); slot++) {
-            Constraint reason = state.reason(exam, slot);
-            if (reason == null) continue;
-            counts.merge(reason, 1, Integer::sum);
-            if (reason == Constraint.STUDENT_CLASH && !examples.containsKey(reason)) {
-                examples.put(reason, state.clashExample(exam, slot));
-            }
-            if (reason == Constraint.CAPACITY && !examples.containsKey(reason)) {
-                examples.put(reason, state.capacityExample(exam, slot));
-            }
-        }
-        List<Rejection> blockers = counts.entrySet().stream()
-                .map(entry -> new Rejection(entry.getKey(), entry.getValue(), examples.get(entry.getKey())))
-                .toList();
-        ExamNode node = state.exams.get(exam);
-        return new Unplaced(node.id(), node.code(), blockers);
-    }
-
-    private Map<Long, Long> slotsByExam() {
-        Map<Long, Long> result = new LinkedHashMap<>();
-        for (int exam = 0; exam < state.exams.size(); exam++) {
-            if (state.slotOf[exam] >= 0) result.put(state.exams.get(exam).id(), state.slots.get(state.slotOf[exam]).id());
-        }
-        return result;
-    }
-
-    private Map<Long, List<HallSeats>> hallsByExam() {
-        Map<Long, List<HallSeats>> result = new TreeMap<>();
-        for (int slot = 0; slot < state.slotCount(); slot++) result.putAll(state.hallPlan(slot));
-        return result;
     }
 }

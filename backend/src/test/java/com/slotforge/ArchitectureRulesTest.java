@@ -19,7 +19,7 @@ class ArchitectureRulesTest {
     @Test
     void theEngineImportsOnlyTheJdkAndItself() throws IOException {
         List<String> offenders = new ArrayList<>();
-        for (String area : List.of("model", "graph", "algorithm", "allocation")) {
+        for (String area : List.of("model", "graph", "algorithm", "allocation", "comparison")) {
             try (Stream<Path> files = Files.walk(PLANNING.resolve(area))) {
                 for (Path file : files.filter(Files::isRegularFile).toList()) {
                     Files.readAllLines(file).stream()

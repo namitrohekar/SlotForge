@@ -4,6 +4,7 @@ import com.slotforge.common.exception.ApiException;
 import com.slotforge.exam.entity.ExamSession;
 import com.slotforge.exam.service.ExamSessionService;
 import com.slotforge.planning.algorithm.DsaturScheduler;
+import com.slotforge.planning.comparison.AlgorithmComparison;
 import com.slotforge.planning.dto.RunResponse;
 import com.slotforge.planning.model.PlanResult;
 import com.slotforge.planning.model.SchedulingProblem;
@@ -42,6 +43,10 @@ public class PlanningService {
             jdbc.sql("UPDATE scheduling_run SET status = 'FAILED', finished_at = now() WHERE id = :run").param("run", runId).update();
             throw ex;
         }
+    }
+
+    public AlgorithmComparison.Report compareAlgorithms() {
+        return AlgorithmComparison.run();
     }
 
     private static void requireSomethingToSchedule(SchedulingProblem problem) {
