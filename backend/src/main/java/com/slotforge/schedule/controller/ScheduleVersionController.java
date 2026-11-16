@@ -10,6 +10,7 @@ import com.slotforge.schedule.dto.DutyAtRiskResponse;
 import com.slotforge.schedule.dto.ReturnRequest;
 import com.slotforge.schedule.dto.ScheduleEntryResponse;
 import com.slotforge.schedule.dto.SeatingResponse;
+import com.slotforge.schedule.dto.VersionDiffResponse;
 import com.slotforge.schedule.dto.VersionResponse;
 import com.slotforge.schedule.service.ScheduleQueryService;
 import com.slotforge.schedule.service.ScheduleWorkflowService;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -70,6 +72,12 @@ public class ScheduleVersionController {
     @PreAuthorize(Access.STUDENT_RECORDS)
     public List<SeatingResponse> seating(@PathVariable Long id) {
         return schedules.seating(id);
+    }
+
+    @GetMapping("/api/schedule-versions/{id}/changes")
+    @PreAuthorize(Access.STUDENT_RECORDS)
+    public VersionDiffResponse changes(@PathVariable Long id, @RequestParam(required = false) Long against) {
+        return schedules.changes(id, against);
     }
 
     @GetMapping("/api/schedule-versions/{id}/violations")

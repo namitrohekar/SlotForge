@@ -6,7 +6,8 @@ import java.util.List;
 
 public record ScheduleEntryResponse(
         long examinationId, String subjectCode, String subjectName, boolean heavy, String departmentCode, int durationMinutes,
-        long slotId, LocalDate date, LocalTime start, LocalTime end, int students, List<Hall> halls, List<Conflict> conflicts) {
+        long slotId, LocalDate date, LocalTime start, LocalTime end, int students, List<Hall> halls, List<Conflict> conflicts,
+        boolean locked, String source) {
 
     public record Hall(String code, String name, String building, int seats, int capacity, List<String> invigilators) {
     }

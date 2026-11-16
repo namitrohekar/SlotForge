@@ -84,6 +84,16 @@ class ScheduleApiTest {
     }
 
     @Test
+    void onlyCoordinatorsRepairOrMoveAndAMoveNeedsASlot() throws Exception {
+        mvc.perform(post("/api/schedule-versions/1/repair").with(csrf()).with(authentication(signedIn(3L, Role.HOD)))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/schedule-versions/1/exams/2/candidate-slots").with(authentication(signedIn(3L, Role.HOD)))).andExpect(status().isForbidden());
+        mvc.perform(post("/api/schedule-versions/1/exams/2/move").with(csrf()).with(authentication(signedIn(2L, Role.EXAM_COORDINATOR)))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/schedule-versions/1/changes").with(authentication(signedIn(4L, Role.FACULTY)))).andExpect(status().isForbidden());
+    }
+
+    @Test
     void onlyApproversHavePastDecisions() throws Exception {
         when(schedules.decidedBy(3L)).thenReturn(List.of());
 

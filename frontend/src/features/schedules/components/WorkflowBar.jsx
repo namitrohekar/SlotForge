@@ -15,7 +15,7 @@ import ReturnDialog from './ReturnDialog.jsx'
 function statusLine(version, placedAll, progress, outOfDate) {
   if (version.status === 'PUBLISHED') return `Published ${formatDateTime(version.publishedAt)}`
   if (version.status === 'SUPERSEDED') return 'Replaced by a newer published timetable'
-  if (outOfDate) return 'Fix these problems, then generate it again'
+  if (outOfDate) return 'Repair it, or fix the cause and generate again'
   if (version.status === 'REVIEWED') return `Approved by ${version.reviewedBy}. Ready to publish.`
   if (!placedAll) return 'Every paper must be placed before it can be approved'
   if (progress.approverIds.length === 0) return `There is no ${progress.approverPost}. Ask an administrator to appoint one.`

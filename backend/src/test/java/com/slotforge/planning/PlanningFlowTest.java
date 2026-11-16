@@ -432,6 +432,139 @@ class PlanningFlowTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void repairMovesOnlyWhatMustMoveAndKeepsEveryoneElsesHallAndInvigilator() throws Exception {
+        exam("MA", student("1"));
+        exam("PH", student("2"));
+        exam("CH", student("3"));
+        long version = idFrom(run().andExpect(status().isCreated()));
+        long blocked = jdbc.sql("SELECT time_slot_id FROM exam_schedule WHERE version_id = ? ORDER BY time_slot_id LIMIT 1").param(version).query(Long.class).single();
+        long displaced = jdbc.sql("SELECT count(*) FROM exam_schedule WHERE version_id = ? AND time_slot_id = ?").param(version).param(blocked).query(Long.class).single();
+        change("UPDATE time_slot SET status = 'BLOCKED', block_reason = 'Holiday' WHERE id = ?", blocked);
+        assertThat(problems(version)).contains("blocked");
+
+        String body = mvc.perform(post("/api/schedule-versions/" + version + "/repair").session(coordinator).with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.level").value(1))
+                .andExpect(jsonPath("$.papersMoved").value((int) displaced))
+                .andReturn().getResponse().getContentAsString();
+        long repaired = Long.parseLong(body.replaceAll(".*\"versionId\":(\\d+).*", "$1"));
+
+        assertThat(problems(repaired)).isEqualTo("[]");
+        assertThat(count("SELECT count(*) FROM exam_schedule WHERE version_id = ? AND time_slot_id = " + blocked, repaired)).isZero();
+        // Every paper that was not in the blocked slot keeps its slot, its hall and its invigilator.
+        assertThat(jdbc.sql("""
+                SELECT count(*)
+                FROM exam_schedule o
+                JOIN exam_schedule n ON n.examination_id = o.examination_id AND n.version_id = :new AND n.time_slot_id = o.time_slot_id
+                JOIN hall_allocation oh ON oh.exam_schedule_id = o.id
+                JOIN hall_allocation nh ON nh.exam_schedule_id = n.id AND nh.hall_id = oh.hall_id
+                JOIN invigilator_assignment oi ON oi.hall_allocation_id = oh.id
+                JOIN invigilator_assignment ni ON ni.hall_allocation_id = nh.id AND ni.user_id = oi.user_id
+                WHERE o.version_id = :old AND o.time_slot_id <> :blocked""")
+                .param("new", repaired).param("old", version).param("blocked", blocked).query(Long.class).single())
+                .isEqualTo(3 - displaced);
+        assertThat(jdbc.sql("SELECT parent_version_id FROM schedule_version WHERE id = ?").param(repaired).query(Long.class).single()).isEqualTo(version);
+        assertThat(count("SELECT count(*) FROM exam_schedule WHERE source = 'REPAIR' AND version_id = ?", repaired)).isEqualTo(displaced);
+        assertThat(jdbc.sql("SELECT kind FROM scheduling_run r JOIN schedule_version v ON v.source_run_id = r.id WHERE v.id = ?")
+                .param(repaired).query(String.class).single()).isEqualTo("REPAIR");
+        assertThat(count("SELECT count(*) FROM schedule_version WHERE id = ?", version)).as("the timetable it was made from is kept").isEqualTo(1);
+
+        mvc.perform(get("/api/schedule-versions/" + repaired + "/changes").session(coordinator))
+                .andExpect(jsonPath("$.againstVersionNo").value(1))
+                .andExpect(jsonPath("$.summary.papersMoved").value((int) displaced))
+                .andExpect(jsonPath("$.summary.unchanged").value((int) (3 - displaced)))
+                .andExpect(jsonPath("$.summary.studentsAffected").value((int) displaced))
+                .andExpect(jsonPath("$.changes[0].kind").value("MOVED"));
+    }
+
+    @Test
+    void aHallOutageIsFlaggedAndRepairedByChangingOnlyTheHall() throws Exception {
+        long maths = exam("MA", student("1"));
+        long version = idFrom(run().andExpect(status().isCreated()));
+        long hall = jdbc.sql("SELECT hall_id FROM hall_allocation WHERE version_id = ?").param(version).query(Long.class).single();
+        String day = jdbc.sql("SELECT CAST(t.slot_date AS VARCHAR) FROM exam_schedule e JOIN time_slot t ON t.id = e.time_slot_id WHERE e.version_id = ?")
+                .param(version).query(String.class).single();
+        String outage = "{\"fromDate\":\"%s\",\"toDate\":\"%s\",\"reason\":\"Repairs\"}".formatted(day, day);
+
+        mvc.perform(post("/api/halls/" + hall + "/unavailability").session(coordinator).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                        .content(outage.replace(day + "\",\"reason", "2026-01-01\",\"reason")))
+                .andExpect(status().isUnprocessableEntity());
+        mvc.perform(post("/api/halls/" + hall + "/unavailability").session(coordinator).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(outage))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.papersAffected").value(1));
+        assertThat(problems(version)).contains("can no longer take");
+
+        long repaired = idFrom(mvc.perform(post("/api/schedule-versions/" + version + "/repair").session(coordinator).with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.papersMoved").value(0)));
+
+        assertThat(slotOf(repaired, maths)).isEqualTo(slotOf(version, maths));
+        assertThat(jdbc.sql("SELECT hall_id FROM hall_allocation WHERE version_id = ?").param(repaired).query(Long.class).single()).isNotEqualTo(hall);
+        assertThat(problems(repaired)).isEqualTo("[]");
+        mvc.perform(get("/api/schedule-versions/" + repaired + "/changes").session(coordinator))
+                .andExpect(jsonPath("$.summary.hallChanges").value(1))
+                .andExpect(jsonPath("$.summary.papersMoved").value(0))
+                .andExpect(jsonPath("$.changes[0].kind").value("HALLS"));
+
+        String listed = mvc.perform(get("/api/halls/" + hall + "/unavailability").session(coordinator))
+                .andExpect(jsonPath("$.length()").value(1)).andReturn().getResponse().getContentAsString();
+        mvc.perform(delete("/api/halls/" + hall + "/unavailability/" + listed.replaceAll(".*\"id\":(\\d+).*", "$1")).session(coordinator).with(csrf()))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/halls/" + hall + "/unavailability").session(coordinator)).andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void aPaperMovedByHandMustKeepTheRulesAndThenStaysPut() throws Exception {
+        // The session has two usable slots. Maths and chemistry share a student, so they take one each. Physics is free to go in either.
+        long sitter = student("1");
+        long maths = exam("MA", sitter);
+        long chemistry = exam("CH", sitter);
+        long physics = exam("PH", student("2"));
+        long version = idFrom(run().andExpect(status().isCreated()));
+        long mathsSlot = slotOf(version, maths);
+        long chemistrySlot = slotOf(version, chemistry);
+        long physicsSlot = slotOf(version, physics);
+        long other = physicsSlot == mathsSlot ? chemistrySlot : mathsSlot;
+
+        mvc.perform(get("/api/schedule-versions/" + version + "/exams/" + maths + "/candidate-slots").session(coordinator))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[?(@.slotId == %d)].reason".formatted(chemistrySlot)).value("STUDENT_CLASH"))
+                .andExpect(jsonPath("$[?(@.slotId == %d)].current".formatted(mathsSlot)).value(true));
+        move(version, maths, chemistrySlot).andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("SLOT_NOT_ALLOWED"));
+
+        long edited = idFrom(move(version, physics, other).andExpect(status().isCreated()).andExpect(jsonPath("$.papersMoved").value(1)));
+
+        assertThat(count("SELECT count(*) FROM schedule_version WHERE id = ?", version)).as("the edited draft replaces the one it came from").isZero();
+        assertThat(slotOf(edited, physics)).isEqualTo(other);
+        assertThat(slotOf(edited, maths)).isEqualTo(mathsSlot);
+        assertThat(slotOf(edited, chemistry)).isEqualTo(chemistrySlot);
+        assertThat(jdbc.sql("SELECT source FROM exam_schedule WHERE version_id = ? AND examination_id = ? AND locked").param(edited).param(physics)
+                .query(String.class).single()).isEqualTo("MANUAL");
+        assertThat(problems(edited)).isEqualTo("[]");
+
+        long again = idFrom(run().andExpect(status().isCreated()));
+        assertThat(slotOf(again, physics)).as("generating again keeps a paper placed by hand").isEqualTo(other);
+
+        mvc.perform(put("/api/schedule-versions/" + again + "/exams/" + physics + "/lock").session(coordinator).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"locked\":false}"))
+                .andExpect(status().isNoContent());
+        assertThat(count("SELECT count(*) FROM exam_schedule WHERE locked AND version_id = ?", again)).isZero();
+
+        submit(again).andExpect(status().isNoContent());
+        move(again, physics, physicsSlot).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("VERSION_NOT_EDITABLE"));
+    }
+
+    private long slotOf(long version, long exam) {
+        return jdbc.sql("SELECT time_slot_id FROM exam_schedule WHERE version_id = ? AND examination_id = ?").param(version).param(exam)
+                .query(Long.class).single();
+    }
+
+    private ResultActions move(long version, long exam, long slot) throws Exception {
+        return mvc.perform(post("/api/schedule-versions/" + version + "/exams/" + exam + "/move").session(coordinator).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"slotId\":" + slot + "}"));
+    }
+
+    @Test
     void aVersionRecordsHowItWasBuiltAndHowGoodItIs() throws Exception {
         long both = student("1");
         exam("MA", both, student("2"));

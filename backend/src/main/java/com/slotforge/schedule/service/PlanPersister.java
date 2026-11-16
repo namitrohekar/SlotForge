@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,8 +42,24 @@ public class PlanPersister {
     private final AuditService audit;
     private final ExamSessionService sessions;
 
+    /**
+     * What a new version takes over from an earlier one. sourceByExam marks papers placed by hand or moved by a repair.
+     * invigilators is keyed by BasePlanReader.key. replaceDraft is a draft this version stands in for, deleted in the same transaction.
+     */
+    public record Carry(Long parentVersionId, Set<Long> locked, Map<Long, String> sourceByExam, Map<String, List<Long>> invigilators, Long replaceDraft, String action) {
+
+        public static Carry none() {
+            return new Carry(null, Set.of(), Map.of(), Map.of(), null, "SCHEDULE_GENERATED");
+        }
+    }
+
     @Transactional
     public RunResponse save(long runId, long sessionId, long actorId, ProblemLoader.Snapshot snapshot, PlanResult plan, long durationMs) {
+        return save(runId, sessionId, actorId, snapshot, plan, durationMs, Carry.none());
+    }
+
+    @Transactional
+    public RunResponse save(long runId, long sessionId, long actorId, ProblemLoader.Snapshot snapshot, PlanResult plan, long durationMs, Carry carry) {
         // Solving runs outside any transaction, so the session may have been cancelled in the meantime.
         sessions.requirePlanning(sessionId);
         int total = snapshot.problem().exams().size();
@@ -58,14 +75,20 @@ public class PlanPersister {
             versionNo = jdbc.sql("SELECT count(*) + 1 FROM scheduling_run WHERE session_id = :session AND status IN ('SUCCEEDED', 'PARTIAL')")
                     .param("session", sessionId).query(Integer.class).single();
             versionId = jdbc.sql("""
-                    INSERT INTO schedule_version (session_id, version_no, source_run_id, created_by)
-                    VALUES (:session, :number, :run, :actor) RETURNING id""")
+                    INSERT INTO schedule_version (session_id, version_no, source_run_id, created_by, parent_version_id)
+                    VALUES (:session, :number, :run, :actor, :parent) RETURNING id""")
                     .param("session", sessionId).param("number", versionNo).param("run", runId).param("actor", actorId)
+                    .param("parent", carry.parentVersionId())
                     .query(Long.class).single();
-            quality = QualityScorer.score(snapshot.problem(), plan, writeEntries(versionId, snapshot, plan));
+            quality = QualityScorer.score(snapshot.problem(), plan, writeEntries(versionId, snapshot, plan, carry));
             jdbc.sql("UPDATE schedule_version SET quality_score = :score WHERE id = :version")
                     .param("score", quality.score()).param("version", versionId).update();
-            audit.record(actorId, "SCHEDULE_GENERATED", "schedule_version", versionId, "{\"placed\":" + placed + ",\"total\":" + total + "}");
+            audit.record(actorId, carry.action(), "schedule_version", versionId, "{\"placed\":" + placed + ",\"total\":" + total + "}");
+            if (carry.replaceDraft() != null) {
+                // The edited draft stands in for the one it was made from, so an edit does not leave a trail of near-copies.
+                jdbc.sql("DELETE FROM schedule_version WHERE id = :old AND status = 'DRAFT' AND submitted_at IS NULL")
+                        .param("old", carry.replaceDraft()).update();
+            }
         }
 
         jdbc.sql("""
@@ -83,17 +106,20 @@ public class PlanPersister {
     }
 
     /** Returns how many duties each person in the pool was given, zeros included. */
-    private Collection<Integer> writeEntries(long versionId, ProblemLoader.Snapshot snapshot, PlanResult plan) {
+    private Collection<Integer> writeEntries(long versionId, ProblemLoader.Snapshot snapshot, PlanResult plan, Carry carry) {
         Map<Long, Integer> capacity = snapshot.problem().halls().stream().collect(Collectors.toMap(HallInfo::id, HallInfo::capacity));
         List<Object[]> seats = new ArrayList<>();
         List<InvigilatorAllocator.Duty> duties = new ArrayList<>();
+        Map<Long, List<Long>> keep = new HashMap<>();
         for (ExamNode exam : snapshot.problem().exams()) {
             Long slotId = plan.slotByExam().get(exam.id());
             if (slotId == null) continue;
             long scheduleId = jdbc.sql("""
-                    INSERT INTO exam_schedule (version_id, examination_id, time_slot_id)
-                    VALUES (:version, :exam, :slot) RETURNING id""")
-                    .param("version", versionId).param("exam", exam.id()).param("slot", slotId).query(Long.class).single();
+                    INSERT INTO exam_schedule (version_id, examination_id, time_slot_id, source, locked)
+                    VALUES (:version, :exam, :slot, :source, :locked) RETURNING id""")
+                    .param("version", versionId).param("exam", exam.id()).param("slot", slotId)
+                    .param("source", carry.sourceByExam().getOrDefault(exam.id(), "AUTO")).param("locked", carry.locked().contains(exam.id()))
+                    .query(Long.class).single();
 
             List<Long> roster = snapshot.rosters().get(exam.id());
             int seated = 0;
@@ -109,22 +135,25 @@ public class PlanPersister {
                 }
                 seated += hall.seats();
                 duties.add(new InvigilatorAllocator.Duty(allocationId, slotId, InvigilatorAllocator.needed(hall.seats(), snapshot.studentsPerInvigilator())));
+                List<Long> before = carry.invigilators().get(BasePlanReader.key(exam.id(), hall.hallId()));
+                if (before != null) keep.put(allocationId, before);
             }
         }
         batch.batchUpdate("""
                 INSERT INTO student_hall_assignment (exam_schedule_id, examination_id, hall_allocation_id, student_id)
                 VALUES (?, ?, ?, ?)""", seats);
-        return writeInvigilators(versionId, snapshot, duties);
+        return writeInvigilators(versionId, snapshot, duties, keep);
     }
 
-    private Collection<Integer> writeInvigilators(long versionId, ProblemLoader.Snapshot snapshot, List<InvigilatorAllocator.Duty> duties) {
+    private Collection<Integer> writeInvigilators(
+            long versionId, ProblemLoader.Snapshot snapshot, List<InvigilatorAllocator.Duty> duties, Map<Long, List<Long>> keep) {
         Map<Long, SlotInfo> slots = snapshot.problem().slots().stream().collect(Collectors.toMap(SlotInfo::id, Function.identity()));
         List<InvigilatorAllocator.Duty> inOrder = duties.stream()
                 .sorted(Comparator.comparing((InvigilatorAllocator.Duty duty) -> slots.get(duty.slotId()).date())
                         .thenComparing(duty -> slots.get(duty.slotId()).start())
                         .thenComparingLong(InvigilatorAllocator.Duty::key))
                 .toList();
-        Map<Long, List<Long>> assigned = InvigilatorAllocator.allocate(inOrder, snapshot.invigilators(), snapshot.maxDuties());
+        Map<Long, List<Long>> assigned = InvigilatorAllocator.allocate(inOrder, snapshot.invigilators(), snapshot.maxDuties(), keep);
         List<Object[]> rows = new ArrayList<>();
         for (InvigilatorAllocator.Duty duty : inOrder) {
             for (long person : assigned.get(duty.key())) {

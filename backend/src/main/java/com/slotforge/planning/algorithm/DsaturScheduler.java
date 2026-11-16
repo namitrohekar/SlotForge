@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.slotforge.planning.model.Outcome;
+import com.slotforge.planning.model.Pins;
 import com.slotforge.planning.model.PlacementStep;
 import com.slotforge.planning.model.PlanResult;
 import com.slotforge.planning.model.SchedulingProblem;
@@ -18,6 +19,8 @@ public final class DsaturScheduler {
     private enum Step { COMPLETE, DEAD_END, BUDGET_EXHAUSTED }
 
     private final SchedulingProblem problem;
+    private final Pins pins;
+    private final boolean[] pinned;
     private final long budget;
     private SearchState state;
     private final int[] deepest;
@@ -28,23 +31,44 @@ public final class DsaturScheduler {
     private final List<PlacementStep> path = new ArrayList<>();
     private List<PlacementStep> deepestPath = List.of();
 
-    private DsaturScheduler(SchedulingProblem problem) {
+    private DsaturScheduler(SchedulingProblem problem, Pins pins) {
         this.problem = problem;
+        this.pins = pins;
         this.budget = problem.rules().nodeBudget();
-        this.state = new SearchState(problem);
+        this.state = new SearchState(problem, pins);
+        this.pinned = new boolean[state.exams.size()];
         this.deepest = new int[state.exams.size()];
         Arrays.fill(deepest, -1);
         this.abandoned = new boolean[state.exams.size()];
     }
 
     public static PlanResult schedule(SchedulingProblem problem) {
-        return new DsaturScheduler(problem).run();
+        return schedule(problem, Pins.none());
+    }
+
+    /** Pinned papers are placed first and never moved. A pin that is no longer legal is released and scheduled like any other paper. */
+    public static PlanResult schedule(SchedulingProblem problem, Pins pins) {
+        return new DsaturScheduler(problem, pins).run();
+    }
+
+    private void placePins() {
+        for (int exam = 0; exam < state.exams.size(); exam++) {
+            Long slotId = pins.fixedSlot().get(state.exams.get(exam).id());
+            int slot = slotId == null ? -1 : state.slotIndex(slotId);
+            if (slot >= 0 && state.reason(exam, slot) == null) {
+                state.place(exam, slot);
+                pinned[exam] = true;
+            }
+        }
     }
 
     private PlanResult run() {
+        placePins();
+        rememberIfDeepest();
         Step end = search();
         if (end != Step.COMPLETE) placeWhatWeCan();
-        else improveSpacing();
+        // A displaced paper belongs near its old date, which spreading papers out would undo.
+        else if (pins.homeSlot().isEmpty()) improveSpacing();
 
         Outcome outcome = state.placed == state.exams.size() ? Outcome.COMPLETE
                 : end == Step.BUDGET_EXHAUSTED ? Outcome.BUDGET_EXHAUSTED : Outcome.NO_SOLUTION;
@@ -57,6 +81,7 @@ public final class DsaturScheduler {
         while (moved && nodes < budget) {
             moved = false;
             for (int exam = 0; exam < state.exams.size() && nodes < budget; exam++) {
+                if (pinned[exam]) continue;
                 nodes++;
                 moved |= state.moveToLessCrowdedSlot(exam);
             }
@@ -131,7 +156,7 @@ public final class DsaturScheduler {
 
     /** A failed search still returns as much as it can: the deepest placement, extended greedily. */
     private void placeWhatWeCan() {
-        state = new SearchState(problem);
+        state = new SearchState(problem, pins);
         for (int exam = 0; exam < deepest.length; exam++) {
             if (deepest[exam] >= 0) state.place(exam, deepest[exam]);
         }

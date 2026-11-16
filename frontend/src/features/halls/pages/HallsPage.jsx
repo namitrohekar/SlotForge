@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DoorOpen, PencilLine, Plus, Trash2 } from 'lucide-react'
+import { CalendarOff, DoorOpen, PencilLine, Plus, Trash2 } from 'lucide-react'
 import Button from '../../../components/common/Button.jsx'
 import ConfirmDialog from '../../../components/common/ConfirmDialog.jsx'
 import DataTable from '../../../components/common/DataTable.jsx'
@@ -16,6 +16,7 @@ import { useAuthStore } from '../../../store/authStore.js'
 import { useToastStore } from '../../../store/toastStore.js'
 import { hasAnyRole } from '../../../utils/roles.js'
 import HallFormDialog from '../components/HallFormDialog.jsx'
+import HallOutagesDialog from '../components/HallOutagesDialog.jsx'
 import { deleteHall, listHalls } from '../services/hallsApi.js'
 
 const columns = [
@@ -37,15 +38,21 @@ export default function HallsPage() {
   const toast = useToastStore((state) => state.push)
   const { data, error, loading, reload, query, setFilter, setPage, setSort } = usePagedList(listHalls)
   const [form, setForm] = useState(null)
+  const [outagesOf, setOutagesOf] = useState(null)
   const deletion = useDelete(deleteHall, reload)
 
   const actions = (hall) => (
     <Dropdown
       label={`Actions for ${hall.name}`}
       items={[
-        { label: 'Edit', icon: PencilLine, onSelect: () => setForm({ hall }) },
-        // A hall in a timetable is part of that record. It can be marked Retired instead.
-        { label: 'Delete', icon: Trash2, danger: true, disabled: hall.allocationCount > 0, onSelect: () => deletion.ask(hall) },
+        { label: 'Unavailable dates', icon: CalendarOff, onSelect: () => setOutagesOf(hall) },
+        ...(canEdit
+          ? [
+              { label: 'Edit', icon: PencilLine, onSelect: () => setForm({ hall }) },
+              // A hall in a timetable is part of that record. It can be marked Retired instead.
+              { label: 'Delete', icon: Trash2, danger: true, disabled: hall.allocationCount > 0, onSelect: () => deletion.ask(hall) },
+            ]
+          : []),
       ]}
     />
   )
@@ -84,7 +91,7 @@ export default function HallsPage() {
           onRetry={reload}
           sort={query.sort ?? 'code,asc'}
           onSort={setSort}
-          actions={canEdit ? actions : undefined}
+          actions={actions}
           empty={
             <EmptyState
               icon={DoorOpen}
@@ -117,6 +124,7 @@ export default function HallsPage() {
         onConfirm={deletion.confirm}
         onClose={deletion.cancel}
       />
+      {outagesOf && <HallOutagesDialog hall={outagesOf} canEdit={canEdit} onClose={() => setOutagesOf(null)} />}
     </>
   )
 }

@@ -1,8 +1,11 @@
 package com.slotforge.hall.controller;
 
+import com.slotforge.hall.dto.HallOutageRequest;
+import com.slotforge.hall.dto.HallOutageResponse;
 import com.slotforge.hall.dto.HallRequest;
 import com.slotforge.hall.dto.HallResponse;
 import com.slotforge.hall.entity.HallStatus;
+import com.slotforge.hall.service.HallOutageService;
 import com.slotforge.hall.service.HallService;
 import com.slotforge.auth.security.Access;
 import com.slotforge.auth.security.AppPrincipal;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class HallController {
 
     private final HallService service;
+    private final HallOutageService outages;
 
     @GetMapping("/api/halls")
     @PreAuthorize(Access.HALL_READERS)
@@ -64,5 +68,25 @@ public class HallController {
     @PreAuthorize(Access.COORDINATOR)
     public void delete(@AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id) {
         service.delete(actor.id(), id);
+    }
+
+    @GetMapping("/api/halls/{id}/unavailability")
+    @PreAuthorize(Access.STUDENT_RECORDS)
+    public java.util.List<HallOutageResponse> outages(@PathVariable Long id) {
+        return outages.list(id);
+    }
+
+    @PostMapping("/api/halls/{id}/unavailability")
+    @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize(Access.COORDINATOR)
+    public HallOutageResponse addOutage(@AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id, @Valid @RequestBody HallOutageRequest body) {
+        return outages.add(actor.id(), id, body);
+    }
+
+    @DeleteMapping("/api/halls/{id}/unavailability/{outageId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(Access.COORDINATOR)
+    public void removeOutage(@AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id, @PathVariable Long outageId) {
+        outages.remove(actor.id(), id, outageId);
     }
 }

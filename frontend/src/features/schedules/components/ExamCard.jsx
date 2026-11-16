@@ -25,6 +25,7 @@ export default function ExamCard({ entry, tone, shared, onOpen, onFocusChange })
           <span className="flex items-center justify-between gap-2 @lg:justify-start">
             <span className="font-mono text-caption text-ink-tertiary">{entry.subjectCode}</span>
             {entry.heavy && <HeavyBadge />}
+            {entry.locked && <span className="text-footnote whitespace-nowrap text-ink-secondary">Kept here</span>}
           </span>
           <span className="mt-0.5 line-clamp-2 text-callout font-medium text-ink">{entry.subjectName}</span>
         </span>

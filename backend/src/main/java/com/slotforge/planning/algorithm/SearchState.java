@@ -22,6 +22,7 @@ import com.slotforge.planning.model.HallInfo;
 import com.slotforge.planning.model.HallSeats;
 import com.slotforge.planning.model.Outcome;
 import com.slotforge.planning.model.PlacementStep;
+import com.slotforge.planning.model.Pins;
 import com.slotforge.planning.model.PlanResult;
 import com.slotforge.planning.model.Rejection;
 import com.slotforge.planning.model.SchedulingProblem;
@@ -37,6 +38,8 @@ final class SearchState {
 
     // Spread a student's papers: indexed by days apart, capped at 3.
     private static final int[] SPACING_PENALTY = {10, 6, 2, 0};
+    // Larger than any spacing penalty, so distance from home always outranks spacing.
+    private static final long PENALTY_CEILING = 100_000_000L;
 
     final List<ExamNode> exams;
     final List<SlotInfo> slots;
@@ -65,8 +68,15 @@ final class SearchState {
     private final int[][] staffNeeded;
     private final Staffing staffing;
     private final int[] staffFree;
+    private final Map<Long, List<HallSeats>> keepHalls;
+    private final long[] homeDay;
 
     SearchState(SchedulingProblem problem) {
+        this(problem, Pins.none());
+    }
+
+    SearchState(SchedulingProblem problem, Pins pins) {
+        keepHalls = pins.keepHalls();
         exams = problem.exams().stream().sorted(Comparator.comparingLong(ExamNode::id)).toList();
         slots = problem.slots().stream()
                 .sorted(Comparator.comparing(SlotInfo::date).thenComparing(SlotInfo::start).thenComparingLong(SlotInfo::id))
@@ -130,6 +140,12 @@ final class SearchState {
         studentDay = new int[examsOf.length][days.length];
         atDailyLimit = new int[examCount][days.length];
         heavyBlocked = new int[examCount][days.length];
+
+        homeDay = new long[examCount];
+        for (int exam = 0; exam < examCount; exam++) {
+            Long home = pins.homeSlot().get(exams.get(exam).id());
+            homeDay[exam] = home == null ? -1 : slots.stream().filter(slot -> slot.id() == home).mapToLong(slot -> slot.date().toEpochDay()).findFirst().orElse(-1);
+        }
 
         fixedReason = new Constraint[examCount][slotCount];
         for (int exam = 0; exam < examCount; exam++) {
@@ -228,7 +244,7 @@ final class SearchState {
         long[] keys = new long[slotCount()];
         int count = 0;
         for (int slot = 0; slot < slotCount(); slot++) {
-            if (reason(exam, slot) == null) keys[count++] = spacingPenalty(exam, slot) * slotCount() + slot;
+            if (reason(exam, slot) == null) keys[count++] = (awayFromHome(exam, slot) * PENALTY_CEILING + Math.min(spacingPenalty(exam, slot), PENALTY_CEILING - 1)) * slotCount() + slot;
         }
         Arrays.sort(keys, 0, count);
         int[] ordered = new int[count];
@@ -243,9 +259,21 @@ final class SearchState {
         int best = orderedLegalSlots(exam)[0];
         int target = spacingPenalty(exam, best) < spacingPenalty(exam, current) ? best : current;
         // Packing is greedy, so a slot can stop packing when a paper leaves it.
-        if (target != current && HallPacker.pack(demands(current), hallsBySlot.get(current)).isEmpty()) target = current;
+        if (target != current && HallPacker.pack(demands(current), hallsBySlot.get(current), keepHalls).isEmpty()) target = current;
         place(exam, target);
         return target != current;
+    }
+
+    /** Days between this slot and where the paper used to be, so a displaced paper lands as near as it can. Zero when it has no home. */
+    private long awayFromHome(int exam, int slot) {
+        return homeDay[exam] < 0 ? 0 : Math.abs(epochOfDay[dayOfSlot[slot]] - homeDay[exam]);
+    }
+
+    int slotIndex(long slotId) {
+        for (int slot = 0; slot < slots.size(); slot++) {
+            if (slots.get(slot).id() == slotId) return slot;
+        }
+        return -1;
     }
 
     private long spacingPenalty(int exam, int slot) {
@@ -264,7 +292,7 @@ final class SearchState {
             fitCheckedAt[exam][slot] = slotVersion[slot];
             List<Demand> demands = demands(slot);
             demands.add(new Demand(exams.get(exam).id(), exams.get(exam).enrolled()));
-            var packed = HallPacker.pack(demands, hallsBySlot.get(slot));
+            var packed = HallPacker.pack(demands, hallsBySlot.get(slot), keepHalls);
             fits[exam][slot] = packed.isPresent();
             staffNeeded[exam][slot] = packed.map(plan -> plan.values().stream().flatMap(List::stream)
                     .mapToInt(hall -> InvigilatorAllocator.needed(hall.seats(), staffing.studentsPerInvigilator())).sum()).orElse(0);
@@ -280,7 +308,11 @@ final class SearchState {
 
     /** Every slot was checked as it filled, so a slot that was accepted always packs. */
     Map<Long, List<HallSeats>> hallPlan(int slot) {
-        return HallPacker.pack(demands(slot), hallsBySlot.get(slot)).orElseThrow();
+        return HallPacker.pack(demands(slot), hallsBySlot.get(slot), keepHalls).orElseThrow();
+    }
+
+    String staffingExample(int exam, int slot) {
+        return "needs " + staffNeeded[exam][slot] + " invigilators in that slot, " + staffFree[slot] + " free";
     }
 
     String clashExample(int exam, int slot) {
@@ -326,7 +358,7 @@ final class SearchState {
                 examples.put(reason, capacityExample(exam, slot));
             }
             if (reason == Constraint.STAFFING && !examples.containsKey(reason)) {
-                examples.put(reason, "needs " + staffNeeded[exam][slot] + " invigilators in that slot, " + staffFree[slot] + " free");
+                examples.put(reason, staffingExample(exam, slot));
             }
         }
         List<Rejection> blockers = counts.entrySet().stream()

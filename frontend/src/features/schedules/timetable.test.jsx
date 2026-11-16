@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '../../store/authStore.js'
 import { demoLogin, fetchAuthOptions, fetchDemoUsers } from '../auth/services/authApi.js'
 import TimetableTab from './components/TimetableTab.jsx'
-import { approveVersion, generateTimetable, listEntries, listVersions, listViolations, submitVersion } from './services/schedulesApi.js'
+import {
+  approveVersion, fetchPreflight, generateTimetable, listCandidateSlots, listEntries, listVersions, listViolations, moveExam, repairVersion, submitVersion,
+} from './services/schedulesApi.js'
 
 vi.mock('../auth/services/authApi.js', () => ({
   fetchAuthOptions: vi.fn(),
@@ -18,6 +20,10 @@ vi.mock('../auth/services/authApi.js', () => ({
 vi.mock('./services/schedulesApi.js', () => ({
   generateTimetable: vi.fn(),
   fetchPreflight: vi.fn().mockResolvedValue([]),
+  listCandidateSlots: vi.fn(),
+  moveExam: vi.fn(),
+  setExamLock: vi.fn(),
+  repairVersion: vi.fn(),
   listVersions: vi.fn(),
   listEntries: vi.fn(),
   listViolations: vi.fn(),
@@ -57,6 +63,8 @@ describe('Timetable', () => {
     useAuthStore.setState({ status: 'signedIn', user: null })
     listEntries.mockResolvedValue([maths, physics])
     listViolations.mockResolvedValue([])
+    fetchPreflight.mockResolvedValue([])
+    listCandidateSlots.mockResolvedValue([])
     fetchAuthOptions.mockResolvedValue({ demoLoginEnabled: false })
   })
 
@@ -91,6 +99,53 @@ describe('Timetable', () => {
     expect(within(dialog).getByText('60 of 60 seats')).toBeInTheDocument()
     expect(within(dialog).getByText('Shares students with')).toBeInTheDocument()
     expect(within(dialog).getByText('Physics')).toBeInTheDocument()
+  })
+
+  it('offers the slots a paper may move to, says why the others are refused, and moves it', async () => {
+    listVersions.mockResolvedValue([unsent])
+    listCandidateSlots.mockResolvedValue([
+      { slotId: 11, date: '2026-12-07', start: '10:00:00', end: '13:00:00', current: true, reason: null, example: null },
+      { slotId: 12, date: '2026-12-14', start: '10:00:00', end: '13:00:00', current: false, reason: 'STUDENT_CLASH', example: 'PH101, 12 shared students' },
+      { slotId: 13, date: '2026-12-16', start: '10:00:00', end: '13:00:00', current: false, reason: null, example: null },
+    ])
+    moveExam.mockResolvedValue({ run: { versionId: 9 }, level: 1, papersMoved: 1 })
+    renderTab()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Mathematics/ }))
+    const dialog = screen.getByRole('dialog', { name: 'Mathematics' })
+    expect(await within(dialog).findByText('Not possible: a student already has a paper (PH101, 12 shared students)')).toBeInTheDocument()
+    expect(within(dialog).getAllByRole('radio')).toHaveLength(2)
+    expect(within(dialog).getByRole('radio', { name: /14 Dec/ })).toBeDisabled()
+    expect(within(dialog).getByRole('button', { name: 'Move here' })).toBeDisabled()
+
+    await userEvent.click(within(dialog).getByRole('radio', { name: /16 Dec/ }))
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Move here' }))
+
+    expect(moveExam).toHaveBeenCalledWith(5, 1, 13)
+    await waitFor(() => expect(listVersions).toHaveBeenCalledTimes(2))
+  })
+
+  it('does not offer to move a paper once the timetable has been sent', async () => {
+    listVersions.mockResolvedValue([complete])
+    renderTab()
+
+    await userEvent.click(await screen.findByRole('button', { name: /Mathematics/ }))
+
+    expect(within(screen.getByRole('dialog', { name: 'Mathematics' })).queryByText('Move to another slot')).not.toBeInTheDocument()
+    expect(listCandidateSlots).not.toHaveBeenCalled()
+  })
+
+  it('repairs a draft with problems, keeping what is still valid', async () => {
+    signInAs('EXAM_COORDINATOR')
+    listVersions.mockResolvedValue([unsent])
+    listViolations.mockResolvedValue(['MB-101 can no longer take MCA301.'])
+    repairVersion.mockResolvedValue({ run: { versionId: 9 }, level: 1, papersMoved: 2 })
+    renderTab()
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Repair' }))
+
+    expect(repairVersion).toHaveBeenCalledWith(5)
+    await waitFor(() => expect(listVersions).toHaveBeenCalledTimes(2))
   })
 
   it('generates the first timetable and opens it', async () => {
@@ -229,7 +284,7 @@ describe('Timetable', () => {
     renderTab({ session, canEdit: false })
 
     expect(await screen.findByText('MCA301 has 1 student without a seat.')).toBeInTheDocument()
-    expect(screen.getByText('Fix these problems, then generate it again')).toBeInTheDocument()
+    expect(screen.getByText('Repair it, or fix the cause and generate again')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send back' })).toBeInTheDocument()
   })

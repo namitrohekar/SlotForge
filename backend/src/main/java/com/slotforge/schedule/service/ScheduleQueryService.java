@@ -5,9 +5,11 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.slotforge.audit.service.AuditService;
 import com.slotforge.common.exception.ApiException;
@@ -21,6 +23,7 @@ import com.slotforge.schedule.dto.DutyAtRiskResponse;
 import com.slotforge.schedule.dto.PublishedTimetableResponse;
 import com.slotforge.schedule.dto.ScheduleEntryResponse;
 import com.slotforge.schedule.dto.SeatingResponse;
+import com.slotforge.schedule.dto.VersionDiffResponse;
 import com.slotforge.schedule.dto.VersionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -112,6 +115,110 @@ public class ScheduleQueryService {
                 })
                 .list();
         return List.copyOf(sessionsById.values());
+    }
+
+    /**
+     * What changed between this timetable and another. With no other named, it is compared with the timetable it was made from,
+     * else the published one, else the version before it.
+     */
+    @Transactional(readOnly = true)
+    public VersionDiffResponse changes(Long versionId, Long againstId) {
+        VersionKey version = find(versionId);
+        int versionNo = numberOf(versionId);
+        Long other = againstId != null ? againstId : jdbc.sql("""
+                SELECT COALESCE(
+                    (SELECT parent_version_id FROM schedule_version WHERE id = :version),
+                    (SELECT id FROM schedule_version WHERE session_id = :session AND status = 'PUBLISHED' AND id <> :version),
+                    (SELECT id FROM schedule_version WHERE session_id = :session AND version_no < :number ORDER BY version_no DESC LIMIT 1))""")
+                .param("version", versionId).param("session", version.sessionId()).param("number", versionNo)
+                .query(Long.class).optional().orElse(null);
+        if (other == null) {
+            return new VersionDiffResponse(versionNo, null, null, new VersionDiffResponse.Summary(0, 0, 0, 0, 0, 0, 0, 0), List.of());
+        }
+        VersionKey against = find(other);
+        if (against.sessionId() != version.sessionId()) {
+            throw ApiException.unprocessable("DIFFERENT_SESSION", "Only timetables of the same session can be compared.");
+        }
+
+        Map<Long, ScheduleEntryResponse> before = new LinkedHashMap<>();
+        entries(other).forEach(entry -> before.put(entry.examinationId(), entry));
+        List<VersionDiffResponse.Change> changes = new ArrayList<>();
+        int moved = 0;
+        int halls = 0;
+        int invigilators = 0;
+        int added = 0;
+        int unchanged = 0;
+        int students = 0;
+        Map<String, List<String>> dutiesBefore = new HashMap<>();
+        Map<String, List<String>> dutiesAfter = new HashMap<>();
+        before.values().forEach(entry -> duties(entry, dutiesBefore));
+        for (ScheduleEntryResponse now : entries(versionId)) {
+            duties(now, dutiesAfter);
+            ScheduleEntryResponse was = before.remove(now.examinationId());
+            String kind = was == null ? "ADDED"
+                    : was.slotId() != now.slotId() ? "MOVED"
+                    : !hallCodes(was).equals(hallCodes(now)) ? "HALLS"
+                    : !people(was).equals(people(now)) ? "INVIGILATORS" : null;
+            if (kind == null) {
+                unchanged++;
+                continue;
+            }
+            switch (kind) {
+                case "ADDED" -> added++;
+                case "MOVED" -> moved++;
+                case "HALLS" -> halls++;
+                default -> invigilators++;
+            }
+            if ("HALLS".equals(kind)) students += now.students() - seatsKept(was, now);
+            else if (!"INVIGILATORS".equals(kind)) students += now.students();
+            changes.add(new VersionDiffResponse.Change(now.subjectCode(), now.subjectName(), now.students(), kind, was == null ? null : place(was), place(now)));
+        }
+        for (ScheduleEntryResponse gone : before.values()) {
+            students += gone.students();
+            changes.add(new VersionDiffResponse.Change(gone.subjectCode(), gone.subjectName(), gone.students(), "REMOVED", place(gone), null));
+        }
+        Set<String> everyone = new HashSet<>(dutiesBefore.keySet());
+        everyone.addAll(dutiesAfter.keySet());
+        int staff = (int) everyone.stream()
+                .filter(name -> !dutiesBefore.getOrDefault(name, List.of()).equals(dutiesAfter.getOrDefault(name, List.of())))
+                .count();
+        return new VersionDiffResponse(versionNo, numberOf(other), against.status(),
+                new VersionDiffResponse.Summary(moved, halls, invigilators, added, before.size(), unchanged, students, staff), changes);
+    }
+
+    private int numberOf(Long versionId) {
+        return jdbc.sql("SELECT version_no FROM schedule_version WHERE id = :version").param("version", versionId).query(Integer.class).single();
+    }
+
+    /** Seats in halls a paper had before with the same count, which the packer keeps for the same students. */
+    private static int seatsKept(ScheduleEntryResponse was, ScheduleEntryResponse now) {
+        return now.halls().stream()
+                .filter(hall -> was.halls().stream().anyMatch(old -> old.code().equals(hall.code()) && old.seats() == hall.seats()))
+                .mapToInt(ScheduleEntryResponse.Hall::seats).sum();
+    }
+
+    private static List<String> hallCodes(ScheduleEntryResponse entry) {
+        return entry.halls().stream().map(ScheduleEntryResponse.Hall::code).sorted().toList();
+    }
+
+    private static List<String> people(ScheduleEntryResponse entry) {
+        return entry.halls().stream().flatMap(hall -> hall.invigilators().stream().map(name -> hall.code() + "|" + name)).sorted().toList();
+    }
+
+    private static VersionDiffResponse.Place place(ScheduleEntryResponse entry) {
+        return new VersionDiffResponse.Place(entry.date(), entry.start(), entry.end(), hallCodes(entry),
+                entry.halls().stream().flatMap(hall -> hall.invigilators().stream()).sorted().toList());
+    }
+
+    /** Each person's duties as sortable text, so two timetables can be compared person by person. */
+    private static void duties(ScheduleEntryResponse entry, Map<String, List<String>> byPerson) {
+        for (ScheduleEntryResponse.Hall hall : entry.halls()) {
+            for (String name : hall.invigilators()) {
+                List<String> list = byPerson.computeIfAbsent(name, ignored -> new ArrayList<>());
+                list.add(entry.date() + " " + entry.start() + " " + hall.code());
+                list.sort(null);
+            }
+        }
     }
 
     /** Who sits where: one entry per hall of each paper, in the order an exam office prints them. */
@@ -217,7 +324,7 @@ public class ScheduleQueryService {
         Map<Long, List<ScheduleEntryResponse.Conflict>> conflicts = conflicts(versionId);
         return jdbc.sql("""
                 SELECT e.examination_id, su.code, su.name, su.is_heavy, d.code, x.duration_minutes,
-                       t.id, t.slot_date, t.start_time, t.end_time, e.id
+                       t.id, t.slot_date, t.start_time, t.end_time, e.id, e.locked, e.source
                 FROM exam_schedule e
                 JOIN examination x ON x.id = e.examination_id
                 JOIN subject su ON su.id = x.subject_id
@@ -232,7 +339,7 @@ public class ScheduleQueryService {
                             row.getString(5), row.getInt(6), row.getLong(7), row.getObject(8, LocalDate.class),
                             row.getObject(9, LocalTime.class), row.getObject(10, LocalTime.class),
                             rooms.stream().mapToInt(ScheduleEntryResponse.Hall::seats).sum(), rooms,
-                            conflicts.getOrDefault(row.getLong(1), List.of()));
+                            conflicts.getOrDefault(row.getLong(1), List.of()), row.getBoolean(12), row.getString(13));
                 })
                 .list();
     }

@@ -44,6 +44,9 @@ class RosterApiTest {
     private HallService halls;
 
     @MockitoBean
+    private com.slotforge.hall.service.HallOutageService outages;
+
+    @MockitoBean
     private StudentService students;
 
     @MockitoBean

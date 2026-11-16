@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { CalendarRange, Printer, RefreshCw, Trash2 } from 'lucide-react'
+import { CalendarRange, Printer, RefreshCw, Trash2, Wrench } from 'lucide-react'
 import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router'
 import Alert from '../../../components/common/Alert.jsx'
 import Button from '../../../components/common/Button.jsx'
@@ -16,7 +16,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery.js'
 import { toApiError } from '../../../services/apiError.js'
 import { useToastStore } from '../../../store/toastStore.js'
 import { formatDateTime } from '../../../utils/format.js'
-import { deleteVersion, fetchPreflight, generateTimetable, listEntries, listVersions, listViolations } from '../services/schedulesApi.js'
+import { deleteVersion, fetchPreflight, generateTimetable, listEntries, listVersions, listViolations, repairVersion } from '../services/schedulesApi.js'
 import ApprovalJourney from './ApprovalJourney.jsx'
 import ExamInspectorDialog from './ExamInspectorDialog.jsx'
 import TimetableAgenda from './TimetableAgenda.jsx'
@@ -53,7 +53,7 @@ function OutOfDateNotice({ problems, published }) {
     <div className="mb-6">
       <Alert
         tone="danger"
-        title={published ? 'This published timetable needs attention. Reopen the session, generate again and publish a replacement.' : 'This timetable cannot go forward yet'}
+        title={published ? 'This published timetable needs attention. Reopen the session, then repair it: only what must change will move.' : 'This timetable cannot go forward yet'}
       >
         <ul className="mt-1 space-y-0.5">
           {problems.map((problem) => (
@@ -98,6 +98,7 @@ export default function TimetableTab() {
   const problems = violations.data ?? []
   const preflight = useApi(useCallback(() => (canEdit ? fetchPreflight(session.id) : Promise.resolve([])), [canEdit, session.id]))
   const [generating, setGenerating] = useState(false)
+  const [repairing, setRepairing] = useState(false)
   const [nothingPlaced, setNothingPlaced] = useState(null)
   const [inspected, setInspected] = useState(null)
 
@@ -130,6 +131,32 @@ export default function TimetableTab() {
     } finally {
       setGenerating(false)
     }
+  }
+
+  // Keeps everything that is still valid and moves only what is not, where Generate again would start over.
+  const repair = async () => {
+    setRepairing(true)
+    try {
+      const result = await repairVersion(current.id)
+      toast({
+        message:
+          result.papersMoved === 0
+            ? 'Repaired without moving any paper'
+            : `Repaired: ${result.papersMoved} ${result.papersMoved === 1 ? 'paper' : 'papers'} moved, everything else kept`,
+      })
+      showVersion(result.run.versionId)
+    } catch (failure) {
+      toast({ tone: 'danger', message: toApiError(failure).message })
+    } finally {
+      setRepairing(false)
+    }
+  }
+
+  const showVersion = (versionId) => {
+    setParams({ version: versionId }, { replace: true })
+    versions.reload()
+    entries.reload()
+    reloadSession()
   }
 
   if (versions.error) return <ErrorState message={versions.error.message} onRetry={versions.reload} />
@@ -184,6 +211,14 @@ export default function TimetableTab() {
             <Link to={`../explained?version=${current.id}`} className="rounded-sm text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
               How it was built
             </Link>
+            {versions.data.length > 1 && (
+              <>
+                {' · '}
+                <Link to={`../changes?version=${current.id}`} className="rounded-sm text-ink underline decoration-line-strong underline-offset-2 hover:decoration-ink">
+                  What changed
+                </Link>
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -216,8 +251,13 @@ export default function TimetableTab() {
               onClick={() => deletion.ask({ id: current.id, name: `Version ${current.versionNo}` })}
             />
           )}
+          {canEdit && problems.length > 0 && (
+            <Button icon={Wrench} onClick={repair} loading={repairing} disabled={generating}>
+              Repair
+            </Button>
+          )}
           {canEdit && (
-            <Button variant="secondary" icon={RefreshCw} onClick={generate} loading={generating}>
+            <Button variant="secondary" icon={RefreshCw} onClick={generate} loading={generating} disabled={repairing}>
               Generate again
             </Button>
           )}
@@ -253,7 +293,18 @@ export default function TimetableTab() {
           <TimetableGrid entries={entries.data} onOpen={setInspected} />
         ))}
 
-      {inspected && <ExamInspectorDialog entry={inspected} entries={entries.data} onClose={() => setInspected(null)} />}
+      {inspected && (
+        <ExamInspectorDialog
+          entry={inspected}
+          entries={entries.data}
+          versionId={canEdit && current.status === 'DRAFT' && !current.submittedAt ? current.id : null}
+          onClose={() => setInspected(null)}
+          onChanged={(versionId) => {
+            setInspected(null)
+            showVersion(versionId)
+          }}
+        />
+      )}
 
       <ConfirmDialog
         open={Boolean(deletion.target)}
