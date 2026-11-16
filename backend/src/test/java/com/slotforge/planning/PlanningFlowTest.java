@@ -609,6 +609,7 @@ class PlanningFlowTest extends PostgresIntegrationTest {
         long maths = exam("MA", student("1"));
         long version = idFrom(run().andExpect(status().isCreated()));
         long hall = jdbc.sql("SELECT hall_id FROM hall_allocation WHERE version_id = ?").param(version).query(Long.class).single();
+        long invigilator = jdbc.sql("SELECT user_id FROM invigilator_assignment WHERE version_id = ?").param(version).query(Long.class).single();
         String day = jdbc.sql("SELECT CAST(t.slot_date AS VARCHAR) FROM exam_schedule e JOIN time_slot t ON t.id = e.time_slot_id WHERE e.version_id = ?")
                 .param(version).query(String.class).single();
         String outage = "{\"fromDate\":\"%s\",\"toDate\":\"%s\",\"reason\":\"Repairs\"}".formatted(day, day);
@@ -627,6 +628,8 @@ class PlanningFlowTest extends PostgresIntegrationTest {
 
         assertThat(slotOf(repaired, maths)).isEqualTo(slotOf(version, maths));
         assertThat(jdbc.sql("SELECT hall_id FROM hall_allocation WHERE version_id = ?").param(repaired).query(Long.class).single()).isNotEqualTo(hall);
+        assertThat(jdbc.sql("SELECT user_id FROM invigilator_assignment WHERE version_id = ?").param(repaired).query(Long.class).single())
+                .as("the invigilator goes with the paper to its new hall").isEqualTo(invigilator);
         assertThat(problems(repaired)).isEqualTo("[]");
         mvc.perform(get("/api/schedule-versions/" + repaired + "/changes").session(coordinator))
                 .andExpect(jsonPath("$.summary.hallChanges").value(1))

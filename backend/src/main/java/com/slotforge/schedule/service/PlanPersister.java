@@ -123,6 +123,8 @@ public class PlanPersister {
 
             List<Long> roster = snapshot.rosters().get(exam.id());
             int seated = 0;
+            List<InvigilatorAllocator.Duty> newHalls = new ArrayList<>();
+            Set<String> hallsKept = new HashSet<>();
             for (HallSeats hall : plan.hallsByExam().get(exam.id())) {
                 long allocationId = jdbc.sql("""
                         INSERT INTO hall_allocation (exam_schedule_id, version_id, time_slot_id, hall_id, seats_allocated, capacity_snapshot)
@@ -134,15 +136,40 @@ public class PlanPersister {
                     seats.add(new Object[] {scheduleId, exam.id(), allocationId, student});
                 }
                 seated += hall.seats();
-                duties.add(new InvigilatorAllocator.Duty(allocationId, slotId, InvigilatorAllocator.needed(hall.seats(), snapshot.studentsPerInvigilator())));
-                List<Long> before = carry.invigilators().get(BasePlanReader.key(exam.id(), hall.hallId()));
-                if (before != null) keep.put(allocationId, before);
+                InvigilatorAllocator.Duty duty = new InvigilatorAllocator.Duty(allocationId, slotId,
+                        InvigilatorAllocator.needed(hall.seats(), snapshot.studentsPerInvigilator()));
+                duties.add(duty);
+                String key = BasePlanReader.key(exam.id(), hall.hallId());
+                List<Long> before = carry.invigilators().get(key);
+                if (before == null) {
+                    newHalls.add(duty);
+                } else {
+                    keep.put(allocationId, before);
+                    hallsKept.add(key);
+                }
             }
+            followThePaper(exam.id(), carry, hallsKept, newHalls, keep);
         }
         batch.batchUpdate("""
                 INSERT INTO student_hall_assignment (exam_schedule_id, examination_id, hall_allocation_id, student_id)
                 VALUES (?, ?, ?, ?)""", seats);
         return writeInvigilators(versionId, snapshot, duties, keep);
+    }
+
+    /** When a paper changes hall, the people who were invigilating it go with it, so a hall change does not reshuffle staff. */
+    private static void followThePaper(
+            long examId, Carry carry, Set<String> hallsKept, List<InvigilatorAllocator.Duty> newHalls, Map<Long, List<Long>> keep) {
+        List<Long> displaced = carry.invigilators().entrySet().stream()
+                .filter(entry -> entry.getKey().startsWith(examId + ":") && !hallsKept.contains(entry.getKey()))
+                .sorted(Map.Entry.comparingByKey())
+                .flatMap(entry -> entry.getValue().stream())
+                .toList();
+        int next = 0;
+        for (InvigilatorAllocator.Duty duty : newHalls) {
+            int upTo = Math.min(displaced.size(), next + duty.needed());
+            if (next < upTo) keep.put(duty.key(), displaced.subList(next, upTo));
+            next = upTo;
+        }
     }
 
     private Collection<Integer> writeInvigilators(
