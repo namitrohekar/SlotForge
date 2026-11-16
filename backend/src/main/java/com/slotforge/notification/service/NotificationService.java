@@ -6,29 +6,22 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 import com.slotforge.notification.dto.NotificationsResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Notices people see inside the app. Everything read here is scoped to the signed-in person. */
 @Service
+@RequiredArgsConstructor
 public class NotificationService {
 
     private static final int SHOWN = 30;
 
     private final JdbcClient jdbc;
-    private final boolean tableExists;
-
-    public NotificationService(JdbcClient jdbc) {
-        this.jdbc = jdbc;
-        // shortcut: the table arrives with V014, which may not be applied yet, so notices stay off until it is.
-        // Raise slotforge.schema.required-version to 14 and delete this check once every database has it.
-        this.tableExists = jdbc.sql("SELECT to_regclass('public.notification') IS NOT NULL").query(Boolean.class).single();
-    }
 
     /** One notice for each person. Joins the caller's transaction, so a rolled-back action tells nobody. */
     public void notify(Collection<Long> userIds, String kind, String title, String body, String link) {
-        if (!tableExists) return;
         for (Long user : new LinkedHashSet<>(userIds)) {
             jdbc.sql("INSERT INTO notification (user_id, kind, title, body, link) VALUES (:user, :kind, :title, :body, :link)")
                     .param("user", user).param("kind", kind).param("title", shorten(title, 200)).param("body", shorten(body, 500)).param("link", link)
@@ -38,7 +31,6 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public NotificationsResponse list(Long userId) {
-        if (!tableExists) return new NotificationsResponse(0, List.of());
         int unread = jdbc.sql("SELECT count(*) FROM notification WHERE user_id = :user AND read_at IS NULL")
                 .param("user", userId).query(Integer.class).single();
         List<NotificationsResponse.Item> items = jdbc.sql("""
@@ -53,7 +45,6 @@ public class NotificationService {
 
     @Transactional
     public void markAllRead(Long userId) {
-        if (!tableExists) return;
         jdbc.sql("UPDATE notification SET read_at = now() WHERE user_id = :user AND read_at IS NULL").param("user", userId).update();
     }
 
