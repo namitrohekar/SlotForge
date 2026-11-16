@@ -1,12 +1,16 @@
 import { ChevronRight } from 'lucide-react'
 import Spinner from '../../../components/common/Spinner.jsx'
-import { roleSummary } from '../../../utils/roles.js'
+import { ROLE_LABELS, roleSummary } from '../../../utils/roles.js'
+
+// The order the roles act in, so the list reads like the exam process.
+const ORDER = Object.keys(ROLE_LABELS)
+const inProcessOrder = (users) => [...users].sort((a, b) => ORDER.indexOf(a.roles[0]) - ORDER.indexOf(b.roles[0]))
 
 // One row per seeded account. Choosing a row signs in as that person.
 export default function DemoUserPicker({ users, pendingId, onPick }) {
   return (
     <ul aria-label="Demo accounts" className="border-y border-line">
-      {users.map((user) => (
+      {inProcessOrder(users).map((user) => (
         <li key={user.id} className="border-b border-line last:border-b-0">
           <button
             type="button"

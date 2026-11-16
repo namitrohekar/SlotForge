@@ -57,16 +57,9 @@ export default function HallsPage() {
       <PageHeader
         title="Halls"
         description="The rooms exams can be held in, and how many students each can seat"
-        actions={
-          canEdit && (
-            <Button icon={Plus} onClick={() => setForm({ hall: null })}>
-              Add hall
-            </Button>
-          )
-        }
       />
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem]">
+      <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
         <SearchInput label="Search halls" value={query.q} onSearch={(value) => setFilter('q', value)} />
         <Select aria-label="Status" value={query.status ?? ''} onChange={(event) => setFilter('status', event.target.value)}>
           <option value="">Any status</option>
@@ -74,6 +67,11 @@ export default function HallsPage() {
           <option value="MAINTENANCE">Maintenance</option>
           <option value="RETIRED">Retired</option>
         </Select>
+        {canEdit && (
+          <Button icon={Plus} onClick={() => setForm({ hall: null })}>
+            Add hall
+          </Button>
+        )}
       </div>
 
       <div>

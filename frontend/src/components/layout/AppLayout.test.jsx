@@ -13,7 +13,7 @@ function renderLayout() {
       Component: AppLayout,
       children: [
         { index: true, element: <PageHeader title="Dashboard" /> },
-        { path: 'system', element: <PageHeader title="System" /> },
+        { path: 'users', element: <PageHeader title="Users" /> },
       ],
     },
   ])
@@ -53,10 +53,10 @@ describe('AppLayout', () => {
   it('moves focus to the new page title after navigating', async () => {
     renderLayout()
 
-    await userEvent.click(screen.getAllByRole('link', { name: 'System' })[0])
+    await userEvent.click(screen.getAllByRole('link', { name: 'Users' })[0])
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'System' })).toHaveFocus()
-    expect(document.title).toBe('System · SlotForge')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Users' })).toHaveFocus()
+    expect(document.title).toBe('Users · SlotForge')
   })
 
   it('shows who is signed in and offers sign-out', () => {

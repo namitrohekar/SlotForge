@@ -10,14 +10,15 @@ import StatusBadge from '../../../components/common/StatusBadge.jsx'
 import PageHeader from '../../../components/layout/PageHeader.jsx'
 import { useApi } from '../../../hooks/useApi.js'
 import { useAuthStore } from '../../../store/authStore.js'
-import { formatDate, formatDateTime, formatDay, formatLongDate } from '../../../utils/format.js'
+import { formatDate, formatDateTime, formatDay, formatLongDate, formatTime, todayIso } from '../../../utils/format.js'
 import { hasAnyRole } from '../../../utils/roles.js'
 import ExamPeriodRuler from '../components/ExamPeriodRuler.jsx'
 import NextStepBanner from '../../exams/components/NextStepBanner.jsx'
 import SessionSteps from '../../exams/components/SessionSteps.jsx'
 import { getSession, listSessions } from '../../exams/services/examsApi.js'
 import { nextStep, sessionSteps } from '../../exams/sessionSteps.js'
-import { listAwaitingApproval, listDutiesAtRisk } from '../../schedules/services/schedulesApi.js'
+import MyExams from '../../schedules/components/MyExams.jsx'
+import { listAwaitingApproval, listDecisions, listDutiesAtRisk, listMyDuties } from '../../schedules/services/schedulesApi.js'
 import { fetchHealth } from '../../system/services/systemApi.js'
 
 const loadSessions = () => listSessions({ size: 50, sort: 'startDate,asc' })
@@ -31,7 +32,7 @@ function SystemLine() {
   return (
     <Link
       to="/system"
-      className="sf-press mt-8 inline-flex items-center gap-2 rounded-sm text-footnote text-ink-secondary hover:text-ink [--press-scale:0.98]"
+      className="sf-press inline-flex items-center gap-2 rounded-sm text-footnote text-ink-secondary hover:text-ink [--press-scale:0.98]"
     >
       <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${error ? 'bg-danger' : 'bg-success'}`} />
       {error ? 'System not responding' : `Connected to ${data.database}, schema version ${data.schemaVersion}`}
@@ -136,30 +137,30 @@ function CoordinatorHome() {
   )
 }
 
-function ReviewerHome() {
-  const { data, error, reload } = useApi(listAwaitingApproval)
-
-  if (error) return <ErrorState message={error.message} onRetry={reload} />
-  if (!data) return <Skeleton className="h-40 w-full rounded-lg" />
-  if (data.length === 0) {
-    return <EmptyState icon={CalendarCheck} title="Nothing is waiting for you" description="Timetables that need your approval appear here" />
-  }
+function Decisions() {
+  const { data } = useApi(listDecisions)
+  if (!data?.length) return null
 
   return (
-    <section aria-labelledby="awaiting">
-      <h2 id="awaiting" className="mb-3 text-title-2">
-        Waiting for your approval
+    <section aria-labelledby="decisions" className="mt-10">
+      <h2 id="decisions" className="mb-2 text-footnote text-ink-tertiary">
+        Timetables you approved
       </h2>
-      <ul className="border-y border-line">
-        {data.map((item) => (
-          <li key={item.versionId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line py-3 last:border-b-0">
-            <div className="min-w-0">
-              <p className="text-callout font-medium text-ink">{item.sessionName}</p>
-              <p data-numeric className="text-footnote text-ink-tertiary">
-                Version {item.versionNo} · {item.papers} {item.papers === 1 ? 'paper' : 'papers'} · generated {formatDateTime(item.generatedAt)}
-              </p>
-            </div>
-            <LinkButton to={`/sessions/${item.sessionId}/timetable?version=${item.versionId}`}>Review</LinkButton>
+      <ul className="border-t border-line">
+        {data.map((decision) => (
+          <li key={`${decision.sessionId}-${decision.versionNo}`} className="flex min-h-12 items-center justify-between gap-4 border-b border-line py-2">
+            <Link
+              to={`/sessions/${decision.sessionId}/timetable`}
+              className="min-w-0 truncate rounded-sm text-callout font-medium text-ink decoration-line-strong underline-offset-2 hover:underline"
+            >
+              {decision.sessionName}
+            </Link>
+            <span className="flex shrink-0 items-center gap-6">
+              <span className="hidden font-mono text-caption text-ink-tertiary sm:inline">
+                Version {decision.versionNo} · {formatDate(decision.reviewedAt)}
+              </span>
+              <StatusBadge status={decision.status} />
+            </span>
           </li>
         ))}
       </ul>
@@ -167,25 +168,87 @@ function ReviewerHome() {
   )
 }
 
-function PersonalHome() {
-  const isStaff = useAuthStore((state) => hasAnyRole(state.user, ['FACULTY', 'INVIGILATOR']))
-  if (isStaff) {
+function ReviewerHome() {
+  const { data, error, reload } = useApi(listAwaitingApproval)
+
+  if (error) return <ErrorState message={error.message} onRetry={reload} />
+  if (!data) return <Skeleton className="h-40 w-full rounded-lg" />
+
+  return (
+    <>
+      {data.length === 0 ? (
+        <EmptyState icon={CalendarCheck} title="Nothing is waiting for you" description="Timetables that need your approval appear here" />
+      ) : (
+        <section aria-labelledby="awaiting">
+          <h2 id="awaiting" className="mb-3 text-title-2">
+            Waiting for your approval
+          </h2>
+          <ul className="border-y border-line">
+            {data.map((item) => (
+              <li key={item.versionId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line py-3 last:border-b-0">
+                <div className="min-w-0">
+                  <p className="text-callout font-medium text-ink">{item.sessionName}</p>
+                  <p data-numeric className="text-footnote text-ink-tertiary">
+                    Version {item.versionNo} · {item.papers} {item.papers === 1 ? 'paper' : 'papers'} · generated {formatDateTime(item.generatedAt)}
+                  </p>
+                </div>
+                <LinkButton to={`/sessions/${item.sessionId}/timetable?version=${item.versionId}`}>Review</LinkButton>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      <Decisions />
+    </>
+  )
+}
+
+// The one thing an invigilator opens the app to learn: where to be next, and when.
+function NextDuty() {
+  const { data, error, reload } = useApi(listMyDuties)
+  const [today] = useState(todayIso)
+
+  if (error) return <ErrorState message={error.message} onRetry={reload} />
+  if (!data) return <Skeleton className="h-40 w-full rounded-lg" />
+
+  const [next, ...later] = data.filter((duty) => duty.date >= today)
+  if (!next) {
     return (
       <EmptyState
         icon={CalendarClock}
-        title="Your invigilation duties"
-        description="See where and when you are on duty, and tell us the dates you cannot invigilate"
+        title="No duties coming up"
+        description="A duty appears here as soon as a timetable that includes you is published"
         action={<LinkButton to="/my/duties">Open My duties</LinkButton>}
       />
     )
   }
+
   return (
-    <EmptyState
-      icon={CalendarClock}
-      title="No timetable to show yet"
-      description="Your exam timetable will appear here once it has been published"
-    />
+    <section aria-labelledby="next-duty">
+      <p className="text-footnote text-ink-tertiary">Your next duty</p>
+      <h2 id="next-duty" data-numeric className="mt-0.5 text-title-1">
+        {formatDay(next.date)}, {formatTime(next.start)} – {formatTime(next.end)}
+      </h2>
+      <p className="mt-2 text-body text-ink">
+        {next.hallName} ({next.hallCode}) · {next.building}
+      </p>
+      <p data-numeric className="mt-0.5 text-callout text-ink-secondary">
+        <span className="font-mono text-caption">{next.paperCode}</span> {next.paperName} · {next.students} students · {next.sessionName}
+      </p>
+      {next.unavailable && <p className="mt-2 text-footnote text-danger">You marked this date as unavailable. The exam office has been alerted.</p>}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line pt-4">
+        <p data-numeric className="text-callout text-ink-secondary">
+          {later.length === 0 ? 'No other duty after this one' : `${later.length} more ${later.length === 1 ? 'duty' : 'duties'} after this one`}
+        </p>
+        <LinkButton to="/my/duties">Open My duties</LinkButton>
+      </div>
+    </section>
   )
+}
+
+function PersonalHome() {
+  const isStaff = useAuthStore((state) => hasAnyRole(state.user, ['FACULTY', 'INVIGILATOR']))
+  return isStaff ? <NextDuty /> : <MyExams />
 }
 
 // Each role opens on what it needs to act on today.
@@ -199,7 +262,14 @@ export default function DashboardPage() {
     <>
       <PageHeader eyebrow={today} title="Dashboard" />
       {isCoordinator ? <CoordinatorHome /> : isHod ? <ReviewerHome /> : <PersonalHome />}
-      {isAdmin && <SystemLine />}
+      {isCoordinator && (
+        <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-2">
+          {isAdmin && <SystemLine />}
+          <Link to="/comparison" className="rounded-sm text-footnote text-ink-secondary underline decoration-line-strong underline-offset-2 hover:text-ink">
+            DSATUR compared with first-fit
+          </Link>
+        </div>
+      )}
     </>
   )
 }

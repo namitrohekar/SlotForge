@@ -54,17 +54,17 @@ export default function SessionsPage() {
       <PageHeader
         title="Exam sessions"
         description="Each session holds its own dates, rules, slots and papers"
-        actions={
-          canEdit && (
-            <Button icon={Plus} onClick={() => setCreating(true)}>
-              New session
-            </Button>
-          )
-        }
       />
 
-      <div className="mb-4">
-        <SearchInput label="Search sessions" value={query.q} onSearch={(value) => setFilter('q', value)} />
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <SearchInput label="Search sessions" value={query.q} onSearch={(value) => setFilter('q', value)} />
+        </div>
+        {canEdit && (
+          <Button icon={Plus} onClick={() => setCreating(true)}>
+            New session
+          </Button>
+        )}
       </div>
 
       <div>

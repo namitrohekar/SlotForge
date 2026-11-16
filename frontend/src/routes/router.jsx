@@ -61,15 +61,37 @@ export const router = createBrowserRouter([
               },
             ],
           },
+          guarded('timetables', () => import('../features/schedules/pages/TimetablesPage.jsx')),
           guarded('my/duties', () => import('../features/schedules/pages/MyDutiesPage.jsx')),
           guarded('students', () => import('../features/students/pages/StudentsPage.jsx')),
           guarded('halls', () => import('../features/halls/pages/HallsPage.jsx')),
+          guarded('comparison', () => import('../features/schedules/pages/AlgorithmComparisonPage.jsx')),
           guarded('users', () => import('../features/users/pages/UsersPage.jsx')),
           guarded('system', () => import('../features/system/pages/SystemStatusPage.jsx')),
           ...(import.meta.env.DEV
             ? [{ path: 'design', lazy: page(() => import('../features/design/pages/DesignGalleryPage.jsx')) }]
             : []),
           { path: '*', lazy: page(() => import('../features/auth/pages/NotFoundPage.jsx')) },
+        ],
+      },
+      // Sheets for paper, so they sit outside the app's menu and bars.
+      {
+        path: '/print',
+        children: [
+          { path: 'notice/:sessionId', lazy: page(() => import('../features/schedules/print/NoticePrintPage.jsx')) },
+          {
+            element: <RequireRoles roles={rolesFor('/sessions')} />,
+            children: [
+              {
+                path: 'sessions/:sessionId/versions/:versionId/seating',
+                lazy: page(() => import('../features/schedules/print/SeatingPrintPage.jsx')),
+              },
+              {
+                path: 'sessions/:sessionId/versions/:versionId/duties',
+                lazy: page(() => import('../features/schedules/print/DutyChartPrintPage.jsx')),
+              },
+            ],
+          },
         ],
       },
     ],

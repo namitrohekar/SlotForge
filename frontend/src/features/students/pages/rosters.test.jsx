@@ -7,6 +7,7 @@ import { listHalls } from '../../halls/services/hallsApi.js'
 import { listAllBatches } from '../../academics/services/academicsApi.js'
 import { listStudents } from '../services/studentsApi.js'
 import StudentsPage from './StudentsPage.jsx'
+import { menuNamed } from '../../../test/menus.js'
 
 vi.mock('../../halls/services/hallsApi.js', () => ({
   listHalls: vi.fn(),
@@ -63,7 +64,7 @@ describe('Rosters', () => {
 
     const table = await screen.findByRole('table')
     expect(within(table).getByText('MCA · 2025-27')).toBeInTheDocument()
-    const menu = screen.getByRole('menu', { name: 'Actions for Asha Rao', hidden: true })
+    const menu = menuNamed('Actions for Asha Rao')
     expect(within(menu).getByRole('menuitem', { name: 'Delete', hidden: true })).toBeDisabled()
   })
 })

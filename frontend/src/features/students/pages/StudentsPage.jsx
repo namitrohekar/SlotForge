@@ -70,16 +70,9 @@ export default function StudentsPage() {
       <PageHeader
         title="Students"
         description="The roster the timetable is built for. A student does not need a login to be scheduled."
-        actions={
-          canEdit && (
-            <Button icon={Plus} onClick={() => setForm({ student: null })} disabled={!batches?.length}>
-              Add student
-            </Button>
-          )
-        }
       />
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_16rem]">
+      <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_16rem_auto]">
         <SearchInput label="Search name, roll number or email" value={query.q} onSearch={(value) => setFilter('q', value)} />
         <Select aria-label="Batch" value={query.batchId ?? ''} onChange={(event) => setFilter('batchId', event.target.value)}>
           <option value="">All batches</option>
@@ -89,6 +82,11 @@ export default function StudentsPage() {
             </option>
           ))}
         </Select>
+        {canEdit && (
+          <Button icon={Plus} onClick={() => setForm({ student: null })} disabled={!batches?.length}>
+            Add student
+          </Button>
+        )}
       </div>
 
       <div>

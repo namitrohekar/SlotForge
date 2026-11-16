@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react'
-import { CalendarRange, RefreshCw, Trash2 } from 'lucide-react'
-import { Link, useOutletContext, useSearchParams } from 'react-router'
+import { CalendarRange, Printer, RefreshCw, Trash2 } from 'lucide-react'
+import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router'
 import Alert from '../../../components/common/Alert.jsx'
 import Button from '../../../components/common/Button.jsx'
 import ConfirmDialog from '../../../components/common/ConfirmDialog.jsx'
+import Dropdown from '../../../components/common/Dropdown.jsx'
 import EmptyState from '../../../components/common/EmptyState.jsx'
 import ErrorState from '../../../components/common/ErrorState.jsx'
 import IconButton from '../../../components/common/IconButton.jsx'
@@ -69,6 +70,7 @@ export default function TimetableTab() {
   const toast = useToastStore((state) => state.push)
   const isPhone = useMediaQuery('(max-width: 47.99rem)')
   const [params, setParams] = useSearchParams()
+  const navigate = useNavigate()
   const versions = useApi(useCallback(() => listVersions(session.id), [session.id]))
   const current = versions.data?.find((version) => String(version.id) === params.get('version')) ?? versions.data?.find(inReview) ?? versions.data?.[0]
   const currentId = current?.id
@@ -177,6 +179,15 @@ export default function TimetableTab() {
               ))}
             </Select>
           </div>
+          <Dropdown
+            label="Print"
+            icon={Printer}
+            items={[
+              { label: 'Seating lists', onSelect: () => navigate(`/print/sessions/${session.id}/versions/${current.id}/seating`) },
+              { label: 'Duty chart', onSelect: () => navigate(`/print/sessions/${session.id}/versions/${current.id}/duties`) },
+              ...(current.status === 'PUBLISHED' ? [{ label: 'Timetable notice', onSelect: () => navigate(`/print/notice/${session.id}`) }] : []),
+            ]}
+          />
           {canEdit && current.status === 'DRAFT' && !current.submittedAt && (
             <IconButton
               label={`Delete version ${current.versionNo}`}

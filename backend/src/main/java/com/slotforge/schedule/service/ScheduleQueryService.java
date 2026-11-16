@@ -5,6 +5,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,8 +16,11 @@ import com.slotforge.exam.service.ExamSessionService;
 import com.slotforge.planning.dto.RunReport;
 import com.slotforge.planning.model.Unplaced;
 import com.slotforge.schedule.dto.AwaitingApprovalResponse;
+import com.slotforge.schedule.dto.DecisionResponse;
 import com.slotforge.schedule.dto.DutyAtRiskResponse;
+import com.slotforge.schedule.dto.PublishedTimetableResponse;
 import com.slotforge.schedule.dto.ScheduleEntryResponse;
+import com.slotforge.schedule.dto.SeatingResponse;
 import com.slotforge.schedule.dto.VersionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -63,6 +67,95 @@ public class ScheduleQueryService {
                         row.getObject(10, Long.class), unplaced(row.getString(11)), row.getString(12), row.getString(13),
                         row.getObject(14, OffsetDateTime.class), row.getObject(15, OffsetDateTime.class), row.getObject(16, OffsetDateTime.class),
                         row.getString(17), row.getString(18), row.getString(19), row.getInt(20)))
+                .list();
+    }
+
+    /** Every live published timetable, newest session first, each paper with the halls it is held in. */
+    @Transactional(readOnly = true)
+    public List<PublishedTimetableResponse> published() {
+        Map<Long, PublishedTimetableResponse> sessionsById = new LinkedHashMap<>();
+        Map<Long, List<String>> hallsByEntry = new HashMap<>();
+        jdbc.sql("""
+                SELECT s.id, s.name, s.start_date, s.end_date, v.published_at, es.id, t.slot_date, t.start_time, t.end_time,
+                       su.code, su.name, h.code
+                FROM schedule_version v
+                JOIN exam_session s ON s.id = v.session_id AND s.status <> 'CANCELLED'
+                JOIN exam_schedule es ON es.version_id = v.id
+                JOIN time_slot t ON t.id = es.time_slot_id
+                JOIN examination x ON x.id = es.examination_id
+                JOIN subject su ON su.id = x.subject_id
+                JOIN hall_allocation a ON a.exam_schedule_id = es.id
+                JOIN exam_hall h ON h.id = a.hall_id
+                WHERE v.status = 'PUBLISHED'
+                ORDER BY s.start_date DESC, s.id, t.slot_date, t.start_time, su.code, h.code""")
+                .query((row, index) -> {
+                    long sessionId = row.getLong(1);
+                    PublishedTimetableResponse session = sessionsById.get(sessionId);
+                    if (session == null) {
+                        session = new PublishedTimetableResponse(sessionId, row.getString(2), row.getObject(3, LocalDate.class),
+                                row.getObject(4, LocalDate.class), row.getObject(5, OffsetDateTime.class), new ArrayList<>());
+                        sessionsById.put(sessionId, session);
+                    }
+                    long entry = row.getLong(6);
+                    if (!hallsByEntry.containsKey(entry)) {
+                        List<String> halls = new ArrayList<>();
+                        hallsByEntry.put(entry, halls);
+                        session.papers().add(new PublishedTimetableResponse.Paper(row.getObject(7, LocalDate.class),
+                                row.getObject(8, LocalTime.class), row.getObject(9, LocalTime.class), row.getString(10), row.getString(11), halls));
+                    }
+                    hallsByEntry.get(entry).add(row.getString(12));
+                    return entry;
+                })
+                .list();
+        return List.copyOf(sessionsById.values());
+    }
+
+    /** Who sits where: one entry per hall of each paper, in the order an exam office prints them. */
+    @Transactional(readOnly = true)
+    public List<SeatingResponse> seating(Long versionId) {
+        Map<Long, SeatingResponse> byAllocation = new LinkedHashMap<>();
+        jdbc.sql("""
+                SELECT a.id, t.slot_date, t.start_time, t.end_time, su.code, su.name, h.code, h.name, h.building, st.roll_no, st.full_name
+                FROM hall_allocation a
+                JOIN exam_schedule es ON es.id = a.exam_schedule_id
+                JOIN time_slot t ON t.id = es.time_slot_id
+                JOIN examination x ON x.id = es.examination_id
+                JOIN subject su ON su.id = x.subject_id
+                JOIN exam_hall h ON h.id = a.hall_id
+                JOIN student_hall_assignment seat ON seat.hall_allocation_id = a.id
+                JOIN student st ON st.id = seat.student_id
+                WHERE a.version_id = :version
+                ORDER BY t.slot_date, t.start_time, h.code, su.code, st.roll_no""")
+                .param("version", versionId)
+                .query((row, index) -> {
+                    long allocation = row.getLong(1);
+                    SeatingResponse hall = byAllocation.get(allocation);
+                    if (hall == null) {
+                        hall = new SeatingResponse(row.getObject(2, LocalDate.class), row.getObject(3, LocalTime.class),
+                                row.getObject(4, LocalTime.class), row.getString(5), row.getString(6), row.getString(7), row.getString(8),
+                                row.getString(9), new ArrayList<>());
+                        byAllocation.put(allocation, hall);
+                    }
+                    hall.students().add(new SeatingResponse.Seat(row.getString(10), row.getString(11)));
+                    return allocation;
+                })
+                .list();
+        return List.copyOf(byAllocation.values());
+    }
+
+    /** The last few timetables this person approved, so their dashboard is not empty once they have acted. */
+    @Transactional(readOnly = true)
+    public List<DecisionResponse> decidedBy(Long actorId) {
+        return jdbc.sql("""
+                SELECT s.id, s.name, v.version_no, v.status, v.reviewed_at
+                FROM schedule_version v
+                JOIN exam_session s ON s.id = v.session_id
+                WHERE v.reviewed_by = :actor AND v.reviewed_at IS NOT NULL
+                ORDER BY v.reviewed_at DESC
+                LIMIT 5""")
+                .param("actor", actorId)
+                .query((row, index) -> new DecisionResponse(row.getLong(1), row.getString(2), row.getInt(3), row.getString(4),
+                        row.getObject(5, OffsetDateTime.class)))
                 .list();
     }
 

@@ -66,6 +66,23 @@ class ScheduleApiTest {
     }
 
     @Test
+    void seatingListsAreForThePeopleWhoMaySeeTheStudentRoster() throws Exception {
+        when(schedules.seating(1L)).thenReturn(List.of());
+
+        mvc.perform(get("/api/schedule-versions/1/seating").with(authentication(signedIn(2L, Role.EXAM_COORDINATOR)))).andExpect(status().isOk());
+        mvc.perform(get("/api/schedule-versions/1/seating").with(authentication(signedIn(4L, Role.FACULTY)))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/schedule-versions/1/seating").with(authentication(signedIn(6L, Role.STUDENT)))).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void onlyApproversHavePastDecisions() throws Exception {
+        when(schedules.decidedBy(3L)).thenReturn(List.of());
+
+        mvc.perform(get("/api/schedule-versions/decided-by-me").with(authentication(signedIn(3L, Role.HOD)))).andExpect(status().isOk());
+        mvc.perform(get("/api/schedule-versions/decided-by-me").with(authentication(signedIn(2L, Role.EXAM_COORDINATOR)))).andExpect(status().isForbidden());
+    }
+
+    @Test
     void facultyCannotSeeDrafts() throws Exception {
         mvc.perform(get("/api/schedule-versions/1/entries").with(authentication(signedIn(4L, Role.FACULTY))))
                 .andExpect(status().isForbidden());

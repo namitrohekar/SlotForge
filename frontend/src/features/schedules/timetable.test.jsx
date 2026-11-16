@@ -43,7 +43,9 @@ const entry = (examinationId, subjectName, date, conflicts) => ({
 const maths = entry(1, 'Mathematics', '2026-12-07', [{ examinationId: 2, sharedStudents: 12 }])
 const physics = entry(2, 'Physics', '2026-12-14', [{ examinationId: 1, sharedStudents: 12 }])
 
-function renderTab(context = { session, canEdit: true }) {
+function renderTab(given = { session, canEdit: true }) {
+  // The session page always supplies reloadSession, so every test does too.
+  const context = { reloadSession: vi.fn(), ...given }
   const router = createMemoryRouter([{ path: '/', element: <Outlet context={context} />, children: [{ index: true, element: <TimetableTab /> }] }])
   render(<RouterProvider router={router} />)
 }

@@ -431,6 +431,51 @@ class PlanningFlowTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void aStudentSeesTheirHallAndEveryoneSeesTheNoticeOnlyOncePublished() throws Exception {
+        long sitter = student("1");
+        long account = createUser("st", "STUDENT");
+        jdbc.sql("UPDATE student SET user_id = ? WHERE id = ?").param(account).param(sitter).update();
+        long stranger = createUser("sx", "STUDENT");
+        exam("MA", sitter, student("2"));
+        long version = idFrom(run().andExpect(status().isCreated()));
+
+        mvc.perform(get("/api/me/exams").with(as(account)))
+                .andExpect(jsonPath("$.rollNo").value("R1" + tag))
+                .andExpect(jsonPath("$.exams").isEmpty());
+        mvc.perform(get("/api/published-timetables").with(as(account)))
+                .andExpect(jsonPath("$[?(@.sessionId == %d)]".formatted(session)).isEmpty());
+
+        submit(version).andExpect(status().isNoContent());
+        approve(version).andExpect(status().isNoContent());
+        publish(version).andExpect(status().isNoContent());
+
+        String seatedIn = jdbc.sql("""
+                SELECT h.code FROM student_hall_assignment a
+                JOIN hall_allocation ha ON ha.id = a.hall_allocation_id
+                JOIN exam_hall h ON h.id = ha.hall_id
+                WHERE a.student_id = ? AND ha.version_id = ?""").param(sitter).param(version).query(String.class).single();
+        mvc.perform(get("/api/me/exams").with(as(account)))
+                .andExpect(jsonPath("$.exams.length()").value(1))
+                .andExpect(jsonPath("$.exams[0].paperCode").value("MA" + tag))
+                .andExpect(jsonPath("$.exams[0].hallCode").value(seatedIn));
+        mvc.perform(get("/api/published-timetables").with(as(account)))
+                .andExpect(jsonPath("$[?(@.sessionId == %d)].papers[0].paperCode".formatted(session)).value("MA" + tag))
+                .andExpect(jsonPath("$[?(@.sessionId == %d)].papers[0].halls[0]".formatted(session)).value(seatedIn));
+        mvc.perform(get("/api/schedule-versions/" + version + "/seating").session(coordinator))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].hallCode").value(seatedIn))
+                .andExpect(jsonPath("$[0].students.length()").value(2))
+                .andExpect(jsonPath("$[0].students[0].rollNo").value("R1" + tag));
+        mvc.perform(get("/api/schedule-versions/decided-by-me").session(headOfDepartment))
+                .andExpect(jsonPath("$[0].sessionId").value((int) session))
+                .andExpect(jsonPath("$[0].status").value("PUBLISHED"));
+        // An account that is on no roster gets an empty answer, not somebody else's papers.
+        mvc.perform(get("/api/me/exams").with(as(stranger)))
+                .andExpect(jsonPath("$.rollNo").isEmpty())
+                .andExpect(jsonPath("$.exams").isEmpty());
+    }
+
+    @Test
     void everyHallIsStaffedAndDutiesAppearOnlyOncePublished() throws Exception {
         change("UPDATE exam_session SET students_per_invigilator = 2 WHERE id = ?", session);
         exam("MA", student("1"), student("2"), student("3"));

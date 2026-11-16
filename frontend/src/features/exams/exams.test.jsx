@@ -132,6 +132,6 @@ describe('Exam setup', () => {
     expect(within(table).getByText('3 h')).toBeInTheDocument()
     expect(within(table).getByText('60')).toBeInTheDocument()
     expect(within(table).queryByRole('button', { name: /student/ })).not.toBeInTheDocument()
-    expect(within(table).getByRole('tooltip')).toHaveTextContent('rest days')
+    expect(within(table).getByRole('tooltip', { hidden: true })).toHaveTextContent('rest days')
   })
 })

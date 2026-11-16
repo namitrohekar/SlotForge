@@ -20,12 +20,29 @@ describe('roles', () => {
     expect(roleSummary(['HOD', 'FACULTY'])).toBe('Head of department, Faculty')
   })
 
-  it('shows System only to administrators', () => {
+  it('gives each role a menu of only what it uses', () => {
     const labels = (user) => visibleNavigation(user).map(({ label }) => label)
 
-    expect(labels(as('ADMIN'))).toContain('System')
-    expect(labels(as('STUDENT'))).not.toContain('System')
-    expect(labels(as('STUDENT'))).toContain('Dashboard')
+    expect(labels(as('STUDENT'))).toEqual(['Dashboard', 'Timetables'])
+    expect(labels(as('INVIGILATOR'))).toEqual(['Dashboard', 'Timetables', 'My duties'])
+    expect(labels(as('FACULTY'))).toEqual(['Dashboard', 'Timetables', 'My duties'])
+    expect(labels(as('EXAM_COORDINATOR'))).toEqual(['Dashboard', 'Timetables', 'Sessions', 'Academics', 'Students', 'Halls'])
+    expect(labels(as('ADMIN'))).toContain('Users')
+  })
+
+  it('keeps My duties away from approvers, who are never given a duty', () => {
+    const labels = (user) => visibleNavigation(user).map(({ label }) => label)
+
+    expect(labels(as('HOD'))).not.toContain('My duties')
+    expect(labels(as('CONTROLLER'))).not.toContain('My duties')
+    expect(labels(as('HOD'))).toContain('Sessions')
+  })
+
+  it('keeps System and Comparison out of the menu but still guarded', () => {
+    const labels = visibleNavigation(as('ADMIN')).map(({ label }) => label)
+
+    expect(labels).not.toContain('System')
+    expect(labels).not.toContain('Comparison')
     expect(rolesFor('/system')).toEqual(['ADMIN'])
   })
 

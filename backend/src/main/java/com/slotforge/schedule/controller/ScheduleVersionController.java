@@ -5,9 +5,11 @@ import java.util.List;
 import com.slotforge.auth.security.Access;
 import com.slotforge.auth.security.AppPrincipal;
 import com.slotforge.schedule.dto.AwaitingApprovalResponse;
+import com.slotforge.schedule.dto.DecisionResponse;
 import com.slotforge.schedule.dto.DutyAtRiskResponse;
 import com.slotforge.schedule.dto.ReturnRequest;
 import com.slotforge.schedule.dto.ScheduleEntryResponse;
+import com.slotforge.schedule.dto.SeatingResponse;
 import com.slotforge.schedule.dto.VersionResponse;
 import com.slotforge.schedule.service.ScheduleQueryService;
 import com.slotforge.schedule.service.ScheduleWorkflowService;
@@ -46,6 +48,12 @@ public class ScheduleVersionController {
         return schedules.awaitingApproval(actor.id());
     }
 
+    @GetMapping("/api/schedule-versions/decided-by-me")
+    @PreAuthorize(Access.HOD)
+    public List<DecisionResponse> decidedByMe(@AuthenticationPrincipal AppPrincipal actor) {
+        return schedules.decidedBy(actor.id());
+    }
+
     @GetMapping("/api/schedule-versions/duties-at-risk")
     @PreAuthorize(Access.COORDINATOR)
     public List<DutyAtRiskResponse> dutiesAtRisk() {
@@ -56,6 +64,12 @@ public class ScheduleVersionController {
     @PreAuthorize(Access.STUDENT_RECORDS)
     public List<ScheduleEntryResponse> entries(@PathVariable Long id) {
         return schedules.entries(id);
+    }
+
+    @GetMapping("/api/schedule-versions/{id}/seating")
+    @PreAuthorize(Access.STUDENT_RECORDS)
+    public List<SeatingResponse> seating(@PathVariable Long id) {
+        return schedules.seating(id);
     }
 
     @GetMapping("/api/schedule-versions/{id}/violations")

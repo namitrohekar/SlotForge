@@ -99,14 +99,9 @@ export default function UsersPage() {
       <PageHeader
         title="Users"
         description="Who can sign in, and what each person may do"
-        actions={
-          <Button icon={Plus} onClick={() => setForm({ user: null })}>
-            Add user
-          </Button>
-        }
       />
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem_10rem]">
+      <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem_10rem_auto]">
         <SearchInput label="Search name or email" value={query.q} onSearch={(value) => setFilter('q', value)} />
         <Select aria-label="Role" value={query.role ?? ''} onChange={(event) => setFilter('role', event.target.value)}>
           <option value="">All roles</option>
@@ -121,6 +116,9 @@ export default function UsersPage() {
           <option value="ACTIVE">Active</option>
           <option value="DEACTIVATED">Deactivated</option>
         </Select>
+        <Button icon={Plus} onClick={() => setForm({ user: null })}>
+          Add user
+        </Button>
       </div>
 
       <div>
@@ -134,7 +132,6 @@ export default function UsersPage() {
           sort={query.sort ?? 'fullName,asc'}
           onSort={setSort}
           actions={actions}
-          inactiveRow={(user) => user.status !== 'ACTIVE'}
           empty={<EmptyState icon={Users} title="No users match" description="Try another name, role or status" />}
         />
       </div>

@@ -18,6 +18,7 @@ import CurriculumDetailPage from '../pages/CurriculumDetailPage.jsx'
 import BatchesTab from './BatchesTab.jsx'
 import CoursesTab from './CoursesTab.jsx'
 import DepartmentsTab from './DepartmentsTab.jsx'
+import { menuNamed } from '../../../test/menus.js'
 
 vi.mock('../services/academicsApi.js', () => ({
   listDepartments: vi.fn(),
@@ -115,7 +116,7 @@ describe('Academic structure', () => {
 
     const table = await screen.findByRole('table')
     expect(within(table).getByText('3 of 4')).toBeInTheDocument()
-    const menu = screen.getByRole('menu', { name: 'Actions for 2025-27', hidden: true })
+    const menu = menuNamed('Actions for 2025-27')
     expect(within(menu).getByRole('menuitem', { name: 'Delete', hidden: true })).toBeDisabled()
   })
 
@@ -125,7 +126,7 @@ describe('Academic structure', () => {
     await screen.findByRole('table')
 
     const deleteIn = (name) =>
-      within(screen.getByRole('menu', { name: `Actions for ${name}`, hidden: true })).getByRole('menuitem', {
+      within(menuNamed(`Actions for ${name}`)).getByRole('menuitem', {
         name: 'Delete',
         hidden: true,
       })

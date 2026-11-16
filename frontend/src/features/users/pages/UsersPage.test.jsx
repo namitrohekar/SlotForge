@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '../../../store/authStore.js'
 import { createUser, listUsers } from '../services/usersApi.js'
 import UsersPage from './UsersPage.jsx'
+import { menuNamed } from '../../../test/menus.js'
 
 vi.mock('../services/usersApi.js', () => ({
   listUsers: vi.fn(),
@@ -37,7 +38,7 @@ const student = {
 }
 
 const menuLabels = (name) =>
-  within(screen.getByRole('menu', { name, hidden: true }))
+  within(menuNamed(name))
     .getAllByRole('menuitem', { hidden: true })
     .map((item) => item.textContent)
 
@@ -93,8 +94,6 @@ describe('UsersPage', () => {
 
     expect(menuLabels('Actions for Sam Patel')).toEqual(['View details', 'Reactivate'])
     expect(menuLabels('Actions for Asha Rao')).toEqual(['Edit', 'Deactivate'])
-    expect(screen.getByText('Sam Patel').closest('tr')).not.toHaveClass('hover:bg-sunken')
-    expect(screen.getByText('Asha Rao').closest('tr')).toHaveClass('hover:bg-sunken')
   })
 
   it('only offers roles that can be held together', async () => {

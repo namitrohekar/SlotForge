@@ -37,11 +37,11 @@ function ariaSort(column, sort) {
   return direction === 'asc' ? 'ascending' : 'descending'
 }
 
-function Table({ caption, columns, rows, rowKey, loading, sort, onSort, actions, inactiveRow }) {
+function Table({ caption, columns, rows, rowKey, loading, sort, onSort, actions }) {
   const hideOnTablet = (column) => (column.priority === 'low' ? 'hidden lg:table-cell' : '')
 
   return (
-    <div className="overflow-x-auto">
+    <div className="-mx-1 overflow-x-auto px-1">
       <table aria-busy={loading || undefined} className="w-full border-collapse text-left text-callout">
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -51,13 +51,13 @@ function Table({ caption, columns, rows, rowKey, loading, sort, onSort, actions,
                 key={column.key}
                 scope="col"
                 aria-sort={ariaSort(column, sort)}
-                className={`px-3 pb-2 font-normal ${column.numeric ? 'text-right' : ''} ${hideOnTablet(column)}`}
+                className={`px-3 pb-2 font-normal first:pl-0 last:pr-0 ${column.numeric ? 'text-right' : ''} ${hideOnTablet(column)}`}
               >
                 {column.sortable ? <SortButton column={column} sort={sort} onSort={onSort} /> : column.header}
               </th>
             ))}
             {actions && (
-              <th scope="col" className="w-12 px-2 pb-2">
+              <th scope="col" className="w-12 pb-2 pl-2">
                 <span className="sr-only">Actions</span>
               </th>
             )}
@@ -65,19 +65,16 @@ function Table({ caption, columns, rows, rowKey, loading, sort, onSort, actions,
         </thead>
         <tbody className="divide-y divide-line">
           {rows.map((row) => (
-            <tr
-              key={row[rowKey]}
-              className={inactiveRow(row) ? '' : 'transition-colors duration-(--duration-fast) hover:bg-sunken'}
-            >
+            <tr key={row[rowKey]}>
               {columns.map((column) => (
                 <td
                   key={column.key}
-                  className={`px-3 py-3 ${column.numeric ? 'text-right' : ''} ${column.mono ? 'font-mono text-caption' : ''} ${column.primary ? 'font-medium text-ink' : 'text-ink-secondary'} ${hideOnTablet(column)}`}
+                  className={`px-3 py-3 first:pl-0 last:pr-0 ${column.numeric ? 'text-right' : ''} ${column.mono ? 'font-mono text-caption' : ''} ${column.primary ? 'font-medium text-ink' : 'text-ink-secondary'} ${hideOnTablet(column)}`}
                 >
                   {cellValue(column, row)}
                 </td>
               ))}
-              {actions && <td className="px-2 py-1 text-right">{actions(row)}</td>}
+              {actions && <td className="py-1 pl-2 text-right">{actions(row)}</td>}
             </tr>
           ))}
         </tbody>
@@ -139,8 +136,6 @@ export default function DataTable({
   sort,
   onSort,
   actions,
-  // Rows that cannot be worked on, such as deactivated accounts, get no hover highlight.
-  inactiveRow = () => false,
 }) {
   const isPhone = useMediaQuery('(max-width: 47.99rem)')
 
@@ -149,5 +144,5 @@ export default function DataTable({
   if (rows.length === 0) return empty ?? <EmptyState title="Nothing here yet" />
 
   const shared = { caption, columns, rows, rowKey, actions }
-  return isPhone ? <CardList {...shared} /> : <Table {...shared} loading={loading} sort={sort} onSort={onSort} inactiveRow={inactiveRow} />
+  return isPhone ? <CardList {...shared} /> : <Table {...shared} loading={loading} sort={sort} onSort={onSort} />
 }
