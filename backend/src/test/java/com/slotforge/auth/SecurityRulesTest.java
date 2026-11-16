@@ -46,6 +46,16 @@ class SecurityRulesTest {
     private HealthService health;
 
     @Test
+    void everyResponseForbidsScriptsFramingAndLeakingItsAddress() throws Exception {
+        mvc.perform(get("/api/auth/me"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Referrer-Policy", "same-origin"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("X-Frame-Options", "DENY"));
+    }
+
+    @Test
     void signedOutApiCallIsJson401() throws Exception {
         mvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized())

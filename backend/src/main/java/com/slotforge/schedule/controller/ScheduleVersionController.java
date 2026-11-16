@@ -83,6 +83,7 @@ public class ScheduleVersionController {
     @GetMapping("/api/schedule-versions/{id}/violations")
     @PreAuthorize(Access.STUDENT_RECORDS)
     public List<String> violations(@PathVariable Long id) {
+        schedules.require(id);
         return validator.problems(id);
     }
 

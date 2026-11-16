@@ -221,9 +221,15 @@ public class ScheduleQueryService {
         }
     }
 
+    /** Refuses a version that does not exist, so a wrong address is not answered with an empty list. */
+    public void require(Long versionId) {
+        find(versionId);
+    }
+
     /** Who sits where: one entry per hall of each paper, in the order an exam office prints them. */
     @Transactional(readOnly = true)
     public List<SeatingResponse> seating(Long versionId) {
+        find(versionId);
         Map<Long, SeatingResponse> byAllocation = new LinkedHashMap<>();
         jdbc.sql("""
                 SELECT a.id, t.slot_date, t.start_time, t.end_time, su.code, su.name, h.code, h.name, h.building, st.roll_no, st.full_name

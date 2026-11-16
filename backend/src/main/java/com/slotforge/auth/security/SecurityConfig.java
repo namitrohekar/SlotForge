@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 @Configuration
 @EnableMethodSecurity
@@ -43,6 +44,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .csrf(csrf -> csrf.spa())
+                // This server returns data and redirects only, so nothing it sends may load a script, be framed or leak the address it came from.
+                .headers(headers -> headers
+                        .contentSecurityPolicy(policy -> policy.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+                        .referrerPolicy(policy -> policy.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)))
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, ex) -> SecurityErrors.write(
                                 response, HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Sign in to continue."))

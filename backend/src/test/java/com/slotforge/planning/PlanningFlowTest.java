@@ -578,6 +578,14 @@ class PlanningFlowTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void aTimetableThatDoesNotExistIsNotFoundRatherThanEmpty() throws Exception {
+        for (String part : List.of("violations", "seating", "entries", "changes")) {
+            mvc.perform(get("/api/schedule-versions/987654321/" + part).session(coordinator)).andExpect(status().isNotFound());
+        }
+        mvc.perform(post("/api/schedule-versions/987654321/repair").session(coordinator).with(csrf())).andExpect(status().isNotFound());
+    }
+
+    @Test
     void theAuditTrailCanBeSearchedByAdministratorsOnly() throws Exception {
         exam("MA", student("1"));
         run().andExpect(status().isCreated());
