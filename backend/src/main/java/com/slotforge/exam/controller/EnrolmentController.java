@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class EnrolmentController {
 
     private final EnrolmentService service;
+    private final com.slotforge.exam.service.EnrolmentImportService imports;
 
     @GetMapping("/api/examinations/{id}/enrolments")
     @PreAuthorize(Access.STUDENT_RECORDS)
@@ -48,5 +49,13 @@ public class EnrolmentController {
     @PreAuthorize(Access.COORDINATOR)
     public void remove(@AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id, @PathVariable Long studentId) {
         service.remove(actor.id(), id, studentId);
+    }
+
+    @PostMapping(path = "/api/exam-sessions/{id}/enrolments/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(Access.COORDINATOR)
+    public com.slotforge.common.csv.ImportReport importEnrolments(
+            @AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id,
+            @org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return imports.importEnrolments(actor.id(), id, file);
     }
 }

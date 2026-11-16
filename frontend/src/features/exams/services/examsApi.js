@@ -24,3 +24,9 @@ export const deleteExamination = (id) => api.delete(`/examinations/${id}`)
 export const listEnrolments = (id, query) => api.get(`/examinations/${id}/enrolments`, { params: query }).then(data)
 export const addEnrolments = (id, studentIds) => api.post(`/examinations/${id}/enrolments`, { studentIds }).then(data)
 export const removeEnrolment = (id, studentId) => api.delete(`/examinations/${id}/enrolments/${studentId}`)
+
+export const importEnrolments = (sessionId, file) => {
+  const body = new FormData()
+  body.append('file', file)
+  return api.post(`/exam-sessions/${sessionId}/enrolments/import`, body).then(data)
+}

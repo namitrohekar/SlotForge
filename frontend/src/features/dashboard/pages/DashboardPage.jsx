@@ -265,6 +265,11 @@ export default function DashboardPage() {
       {isCoordinator && (
         <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-2">
           {isAdmin && <SystemLine />}
+          {isAdmin && (
+            <Link to="/audit" className="rounded-sm text-footnote text-ink-secondary underline decoration-line-strong underline-offset-2 hover:text-ink">
+              Audit log
+            </Link>
+          )}
           <Link to="/comparison" className="rounded-sm text-footnote text-ink-secondary underline decoration-line-strong underline-offset-2 hover:text-ink">
             DSATUR compared with first-fit
           </Link>

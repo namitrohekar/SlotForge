@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { PencilLine, Plus, Trash2, UserRound } from 'lucide-react'
+import { PencilLine, Plus, Trash2, Upload, UserRound } from 'lucide-react'
 import Button from '../../../components/common/Button.jsx'
 import ConfirmDialog from '../../../components/common/ConfirmDialog.jsx'
+import CsvImportDialog from '../../../components/common/CsvImportDialog.jsx'
 import DataTable from '../../../components/common/DataTable.jsx'
 import Dropdown from '../../../components/common/Dropdown.jsx'
 import EmptyState from '../../../components/common/EmptyState.jsx'
@@ -17,7 +18,7 @@ import { useToastStore } from '../../../store/toastStore.js'
 import { hasAnyRole } from '../../../utils/roles.js'
 import { listAllBatches } from '../../academics/services/academicsApi.js'
 import StudentFormDialog from '../components/StudentFormDialog.jsx'
-import { deleteStudent, listStudents } from '../services/studentsApi.js'
+import { deleteStudent, importStudents, listStudents } from '../services/studentsApi.js'
 
 const columns = [
   {
@@ -45,6 +46,7 @@ export default function StudentsPage() {
   const { data: batches } = useApi(listAllBatches)
   const [form, setForm] = useState(null)
   const deletion = useDelete(deleteStudent, reload)
+  const [importing, setImporting] = useState(false)
 
   const actions = (student) => (
     <Dropdown
@@ -83,9 +85,14 @@ export default function StudentsPage() {
           ))}
         </Select>
         {canEdit && (
-          <Button icon={Plus} onClick={() => setForm({ student: null })} disabled={!batches?.length}>
-            Add student
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" icon={Upload} onClick={() => setImporting(true)} disabled={!batches?.length}>
+              Import
+            </Button>
+            <Button icon={Plus} onClick={() => setForm({ student: null })} disabled={!batches?.length}>
+              Add student
+            </Button>
+          </div>
         )}
       </div>
 
@@ -134,6 +141,17 @@ export default function StudentsPage() {
         onConfirm={deletion.confirm}
         onClose={deletion.cancel}
       />
+      {importing && (
+        <CsvImportDialog
+          title="Import students"
+          description="One row for each student. Programme is its code, such as MCA, and batch is its name, such as 2025-27."
+          columns={['roll_no', 'full_name', 'email', 'programme', 'batch']}
+          sample={[['25MCA061', 'Asha Rao', 'asha.rao@vjti.ac.in', 'MCA', '2025-27']]}
+          upload={importStudents}
+          onImported={reload}
+          onClose={() => setImporting(false)}
+        />
+      )}
     </>
   )
 }

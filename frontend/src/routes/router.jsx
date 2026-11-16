@@ -70,6 +70,7 @@ export const router = createBrowserRouter([
           guarded('comparison', () => import('../features/schedules/pages/AlgorithmComparisonPage.jsx')),
           guarded('users', () => import('../features/users/pages/UsersPage.jsx')),
           guarded('system', () => import('../features/system/pages/SystemStatusPage.jsx')),
+          guarded('audit', () => import('../features/audit/pages/AuditPage.jsx')),
           ...(import.meta.env.DEV
             ? [{ path: 'design', lazy: page(() => import('../features/design/pages/DesignGalleryPage.jsx')) }]
             : []),

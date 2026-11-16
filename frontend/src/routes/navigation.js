@@ -18,6 +18,7 @@ export const navigation = [
   // Reached from a link on the dashboard, not from the menu.
   { label: 'Comparison', to: '/comparison', roles: PLANNERS, menu: false },
   { label: 'System', to: '/system', roles: ['ADMIN'], menu: false },
+  { label: 'Audit log', to: '/audit', roles: ['ADMIN'], menu: false },
 ]
 
 export const TAB_BAR_LIMIT = 4

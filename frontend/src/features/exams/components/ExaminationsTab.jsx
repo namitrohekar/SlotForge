@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react'
-import { FileText, ListPlus, PencilLine, Trash2 } from 'lucide-react'
+import { FileText, ListPlus, PencilLine, Trash2, Upload } from 'lucide-react'
 import { useOutletContext } from 'react-router'
 import HeavyBadge from '../../../components/common/HeavyBadge.jsx'
 import Button from '../../../components/common/Button.jsx'
 import ConfirmDialog from '../../../components/common/ConfirmDialog.jsx'
+import CsvImportDialog from '../../../components/common/CsvImportDialog.jsx'
 import DataTable from '../../../components/common/DataTable.jsx'
 import Dropdown from '../../../components/common/Dropdown.jsx'
 import EmptyState from '../../../components/common/EmptyState.jsx'
@@ -16,7 +17,7 @@ import { useAuthStore } from '../../../store/authStore.js'
 import { useToastStore } from '../../../store/toastStore.js'
 import { formatDuration } from '../../../utils/format.js'
 import { hasAnyRole } from '../../../utils/roles.js'
-import { deleteExamination, listExaminations } from '../services/examsApi.js'
+import { deleteExamination, importEnrolments, listExaminations } from '../services/examsApi.js'
 import EnrolmentDialog from './EnrolmentDialog.jsx'
 import ExaminationFormDialog from './ExaminationFormDialog.jsx'
 import FromCurriculumDialog from './FromCurriculumDialog.jsx'
@@ -87,10 +88,16 @@ export default function ExaminationsTab() {
     />
   )
 
+  const [importing, setImporting] = useState(false)
   const addButton = (
-    <Button icon={ListPlus} onClick={() => setAdding(true)}>
-      Add from curriculum
-    </Button>
+    <div className="flex gap-2">
+      <Button variant="secondary" icon={Upload} onClick={() => setImporting(true)}>
+        Import enrolment
+      </Button>
+      <Button icon={ListPlus} onClick={() => setAdding(true)}>
+        Add from curriculum
+      </Button>
+    </div>
   )
 
   return (
@@ -161,6 +168,20 @@ export default function ExaminationsTab() {
         onConfirm={deletion.confirm}
         onClose={deletion.cancel}
       />
+      {importing && (
+        <CsvImportDialog
+          title="Import enrolment"
+          description="One row for each student and paper, for electives and resits. Core papers are enrolled when you add them from the curriculum."
+          columns={['roll_no', 'subject_code']}
+          sample={[['25MCA001', 'MCA311']]}
+          upload={(file) => importEnrolments(session.id, file)}
+          onImported={() => {
+            reload()
+            reloadSession()
+          }}
+          onClose={() => setImporting(false)}
+        />
+      )}
     </>
   )
 }

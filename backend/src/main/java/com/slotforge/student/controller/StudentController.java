@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class StudentController {
 
     private final StudentService service;
+    private final com.slotforge.student.service.StudentImportService imports;
 
     @GetMapping("/api/students")
     @PreAuthorize(Access.STUDENT_RECORDS)
@@ -63,5 +64,12 @@ public class StudentController {
     @PreAuthorize(Access.COORDINATOR)
     public void delete(@AuthenticationPrincipal AppPrincipal actor, @PathVariable Long id) {
         service.delete(actor.id(), id);
+    }
+
+    @PostMapping(path = "/api/students/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(Access.COORDINATOR)
+    public com.slotforge.common.csv.ImportReport importStudents(
+            @AuthenticationPrincipal AppPrincipal actor, @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return imports.importStudents(actor.id(), file);
     }
 }

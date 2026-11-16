@@ -478,6 +478,72 @@ class PlanningFlowTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void aRosterIsImportedOnlyWhenEveryRowIsGood() throws Exception {
+        String programme = "C" + tag;
+        String good = "roll_no,full_name,email,programme,batch\nX1%s,\"Rao, Asha\",x1%s@vjti.ac.in,%s,B\nX2%s,Bela Shah,X2%s@VJTI.AC.IN,%s,b\n"
+                .formatted(tag, tag.toLowerCase(), programme, tag, tag, programme.toLowerCase());
+        String bad = good + "X1%s,Again,other%s@vjti.ac.in,%s,B\nX9%s,No Batch,x9%s@vjti.ac.in,%s,Nowhere\n"
+                .formatted(tag, tag.toLowerCase(), programme, tag, tag.toLowerCase(), programme);
+
+        upload("/api/students/import", bad)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imported").value(0))
+                .andExpect(jsonPath("$.errorCount").value(2))
+                .andExpect(jsonPath("$.errors[0].line").value(4))
+                .andExpect(jsonPath("$.errors[1].line").value(5));
+        assertThat(jdbc.sql("SELECT count(*) FROM student WHERE roll_no LIKE ?").param("X_" + tag).query(Long.class).single())
+                .as("a file with a bad row saves nothing").isZero();
+
+        upload("/api/students/import", good).andExpect(jsonPath("$.imported").value(2)).andExpect(jsonPath("$.errorCount").value(0));
+        assertThat(jdbc.sql("SELECT full_name || '|' || email FROM student WHERE roll_no = ?").param("X1" + tag).query(String.class).single())
+                .isEqualTo("Rao, Asha|x1" + tag.toLowerCase() + "@vjti.ac.in");
+        assertThat(jdbc.sql("SELECT email FROM student WHERE roll_no = ?").param("X2" + tag).query(String.class).single())
+                .as("emails are stored in lower case").isEqualTo("x2" + tag.toLowerCase() + "@vjti.ac.in");
+
+        upload("/api/students/import", good).andExpect(jsonPath("$.imported").value(0)).andExpect(jsonPath("$.errors[0].message").value(
+                org.hamcrest.Matchers.containsString("already on the roster")));
+        upload("/api/students/import", "name\nx\n").andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.code").value("INVALID_FILE"));
+    }
+
+    @Test
+    void enrolmentIsImportedByRollNumberAndSubjectCode() throws Exception {
+        long sitter = student("1");
+        student("2");
+        long paper = exam("MA");
+        String rows = "roll_no,subject_code\nR1%s,MA%s\nr2%s,ma%s\nR1%s,MA%s\n".formatted(tag, tag, tag.toLowerCase(), tag.toLowerCase(), tag, tag);
+
+        upload("/api/exam-sessions/" + session + "/enrolments/import", rows + "R1%s,NOPE\nNOBODY,MA%s\n".formatted(tag, tag))
+                .andExpect(jsonPath("$.imported").value(0))
+                .andExpect(jsonPath("$.errorCount").value(2));
+        assertThat(count("SELECT count(*) FROM examination_enrolment WHERE examination_id = ?", paper)).isZero();
+
+        upload("/api/exam-sessions/" + session + "/enrolments/import", rows)
+                .andExpect(jsonPath("$.rows").value(3))
+                .andExpect(jsonPath("$.imported").value(2));
+        assertThat(count("SELECT count(*) FROM examination_enrolment WHERE examination_id = ?", paper)).isEqualTo(2);
+        assertThat(count("SELECT count(*) FROM examination_enrolment WHERE examination_id = " + paper + " AND student_id = ?", sitter)).isEqualTo(1);
+    }
+
+    @Test
+    void theAuditTrailCanBeSearchedByAdministratorsOnly() throws Exception {
+        exam("MA", student("1"));
+        run().andExpect(status().isCreated());
+        long admin = createUser("adm", "ADMIN");
+
+        mvc.perform(get("/api/audit-logs").param("q", "schedule generated").with(as(admin)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].action").value("SCHEDULE_GENERATED"))
+                .andExpect(jsonPath("$.items[0].actorName").value("Coordinator"));
+        mvc.perform(get("/api/audit-logs").session(coordinator)).andExpect(status().isForbidden());
+    }
+
+    private ResultActions upload(String url, String csv) throws Exception {
+        return mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(url)
+                .file(new org.springframework.mock.web.MockMultipartFile("file", "data.csv", "text/csv", csv.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .session(coordinator).with(csrf()));
+    }
+
+    @Test
     void aHallOutageIsFlaggedAndRepairedByChangingOnlyTheHall() throws Exception {
         long maths = exam("MA", student("1"));
         long version = idFrom(run().andExpect(status().isCreated()));

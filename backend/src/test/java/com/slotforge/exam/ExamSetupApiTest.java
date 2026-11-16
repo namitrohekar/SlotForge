@@ -53,6 +53,9 @@ class ExamSetupApiTest {
     private EnrolmentService enrolments;
 
     @MockitoBean
+    private com.slotforge.exam.service.EnrolmentImportService enrolmentImports;
+
+    @MockitoBean
     private AppUserRepository users;
 
     @Test

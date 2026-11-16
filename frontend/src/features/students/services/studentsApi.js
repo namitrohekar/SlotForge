@@ -6,3 +6,10 @@ export const listStudents = (query) => api.get('/students', { params: query }).t
 export const createStudent = (body) => api.post('/students', body).then(data)
 export const updateStudent = (id, body) => api.put(`/students/${id}`, body).then(data)
 export const deleteStudent = (id) => api.delete(`/students/${id}`)
+
+const fileBody = (file) => {
+  const body = new FormData()
+  body.append('file', file)
+  return body
+}
+export const importStudents = (file) => api.post('/students/import', fileBody(file)).then(data)

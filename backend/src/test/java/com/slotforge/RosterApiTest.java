@@ -50,6 +50,9 @@ class RosterApiTest {
     private StudentService students;
 
     @MockitoBean
+    private com.slotforge.student.service.StudentImportService studentImports;
+
+    @MockitoBean
     private AppUserRepository users;
 
     @Test
