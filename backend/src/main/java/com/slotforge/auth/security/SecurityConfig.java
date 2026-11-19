@@ -30,6 +30,9 @@ public class SecurityConfig {
                 """);
     }
 
+    public static final String CONTENT_SECURITY_POLICY =
+            "default-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, AppUserRepository users, ObjectProvider<GoogleLoginHandler> google)
             throws Exception {
@@ -44,9 +47,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .csrf(csrf -> csrf.spa())
-                // This server returns data and redirects only, so nothing it sends may load a script, be framed or leak the address it came from.
+                // The app and its data come only from here: no outside script, no inline script, no framing, no leaked address.
                 .headers(headers -> headers
-                        .contentSecurityPolicy(policy -> policy.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
+                        .contentSecurityPolicy(policy -> policy.policyDirectives(CONTENT_SECURITY_POLICY))
                         .referrerPolicy(policy -> policy.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)))
                 .exceptionHandling(errors -> errors
                         .authenticationEntryPoint((request, response, ex) -> SecurityErrors.write(

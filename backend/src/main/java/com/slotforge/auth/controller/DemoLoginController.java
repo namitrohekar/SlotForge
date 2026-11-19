@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -27,13 +28,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Exists only under the local profile, and never with prod. Without it these URLs are 404. */
+/** Exists only under DemoLoginService.PROFILES. Without them these URLs are 404. */
 @RestController
-@Profile("local & !prod")
+@Profile(DemoLoginService.PROFILES)
 @RequiredArgsConstructor
 public class DemoLoginController {
 
     private final DemoLoginService demoLogin;
+    private final Environment environment;
     private final SecurityContextRepository contexts = new HttpSessionSecurityContextRepository();
 
     @GetMapping("/api/auth/demo-users")
@@ -46,7 +48,8 @@ public class DemoLoginController {
     @PreAuthorize("permitAll()")
     public CurrentUserResponse signIn(
             @Valid @RequestBody DemoLoginRequest body, HttpServletRequest request, HttpServletResponse response) {
-        if (!isLoopback(request.getRemoteAddr())) {
+        // On a developer machine the demo stays on that machine. A demo deployment is public on purpose.
+        if (!environment.matchesProfiles("demo") && !isLoopback(request.getRemoteAddr())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "DEMO_LOGIN_LOCAL_ONLY", "Demo sign-in only works on this computer.");
         }
 

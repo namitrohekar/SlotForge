@@ -15,9 +15,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Profile("local & !prod")
+@Profile(DemoLoginService.PROFILES)
 @RequiredArgsConstructor
 public class DemoLoginService {
+
+    /**
+     * Demo sign-in exists on a developer's machine, and on a deployment that opts in with the demo profile.
+     * A demo deployment must hold demo data only, because anyone with its address can sign in as any demo account.
+     */
+    public static final String PROFILES = "(local & !prod) | demo";
 
     // .test is a reserved domain, so a real account can never match.
     static final String DEMO_DOMAIN = "@demo.slotforge.test";

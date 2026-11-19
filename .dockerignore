@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/target
+**/.env
+**/.env.*
+!backend/.env.example
+.git
+.claude
+graphify-out
+docs
+database
+**/.DS_Store
+frontend/test-results
+frontend/playwright-report

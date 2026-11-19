@@ -3,6 +3,7 @@ package com.slotforge.auth.controller;
 import com.slotforge.auth.dto.AuthOptionsResponse;
 import com.slotforge.auth.dto.CurrentUserResponse;
 import lombok.RequiredArgsConstructor;
+import com.slotforge.auth.service.DemoLoginService;
 import org.springframework.core.env.Environment;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -21,7 +22,7 @@ public class AuthController {
     @PreAuthorize("permitAll()")
     public AuthOptionsResponse options(CsrfToken csrfToken) {
         csrfToken.getToken();
-        return new AuthOptionsResponse(environment.matchesProfiles("google"), environment.matchesProfiles("local & !prod"));
+        return new AuthOptionsResponse(environment.matchesProfiles("google"), environment.matchesProfiles(DemoLoginService.PROFILES));
     }
 
     @GetMapping("/api/auth/me")

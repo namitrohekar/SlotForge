@@ -1,0 +1,19 @@
+# Render blueprint: one free web service built from the Dockerfile. Values marked sync: false are asked for when you create it.
+services:
+  - type: web
+    name: slotforge
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    healthCheckPath: /api/auth/options
+    envVars:
+      # prod: secure cookies and the host's HTTPS. demo: anyone with the address can use the demo accounts.
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod,demo
+      - key: SLOTFORGE_DB_URL
+        sync: false
+      - key: SLOTFORGE_DB_USERNAME
+        sync: false
+      - key: SLOTFORGE_DB_PASSWORD
+        sync: false

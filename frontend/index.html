@@ -8,21 +8,8 @@
     <meta name="theme-color" content="#F5F3EF" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#100F0E" media="(prefers-color-scheme: dark)" />
     <title>SlotForge</title>
-    <script>
-      // Runs before first paint, so the page never flashes the wrong theme.
-      ;(function () {
-        var theme = 'system'
-        try {
-          theme = JSON.parse(localStorage.getItem('slotforge-preferences')).state.theme || 'system'
-        } catch (e) {
-          theme = 'system'
-        }
-        if (theme === 'system') {
-          theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-        }
-        document.documentElement.dataset.theme = theme
-      })()
-    </script>
+    <!-- Runs before first paint, so the page never flashes the wrong theme. A file, so the security policy needs no inline script. -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

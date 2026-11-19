@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const html = readFileSync('index.html', 'utf8')
-const script = html.match(/<script>([\s\S]*?)<\/script>/)[1]
+const script = readFileSync('public/theme-init.js', 'utf8')
 
 function themeAfterRunning({ stored, systemDark = false }) {
   vi.stubGlobal('matchMedia', () => ({ matches: systemDark }))
@@ -13,7 +12,13 @@ function themeAfterRunning({ stored, systemDark = false }) {
 
 const saved = (theme) => () => JSON.stringify({ state: { theme }, version: 0 })
 
-describe('theme script in index.html', () => {
+describe('theme script loaded by index.html', () => {
+  it('is loaded before the app, as a file the security policy allows', () => {
+    const html = readFileSync('index.html', 'utf8')
+    expect(html).not.toMatch(/<script>/)
+    expect(html.indexOf('/theme-init.js')).toBeLessThan(html.indexOf('/src/main.jsx'))
+  })
+
   afterEach(() => vi.unstubAllGlobals())
 
   it('uses the saved theme', () => {

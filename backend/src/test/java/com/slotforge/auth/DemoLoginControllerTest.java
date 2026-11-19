@@ -98,7 +98,7 @@ class DemoLoginControllerTest {
                 .andExpect(jsonPath("$.fieldErrors[0].field").value("userId"));
     }
 
-    private static AppUser admin() {
+    static AppUser admin() {
         AppUser user = new AppUser();
         user.setId(1L);
         user.setEmail("admin@demo.slotforge.test");
