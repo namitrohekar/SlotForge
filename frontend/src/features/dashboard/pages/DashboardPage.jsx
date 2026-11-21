@@ -19,26 +19,9 @@ import { getSession, listSessions } from '../../exams/services/examsApi.js'
 import { nextStep, sessionSteps } from '../../exams/sessionSteps.js'
 import MyExams from '../../schedules/components/MyExams.jsx'
 import { listAwaitingApproval, listDecisions, listDutiesAtRisk, listMyDuties } from '../../schedules/services/schedulesApi.js'
-import { fetchHealth } from '../../system/services/systemApi.js'
 
 const loadSessions = () => listSessions({ size: 50, sort: 'startDate,asc' })
 const dates = (session) => `${formatDate(session.startDate)} – ${formatDate(session.endDate)}`
-
-function SystemLine() {
-  const { data, error, loading } = useApi(fetchHealth)
-
-  if (loading) return <Skeleton className="h-4.5 w-56" />
-
-  return (
-    <Link
-      to="/system"
-      className="sf-press inline-flex items-center gap-2 rounded-sm text-footnote text-ink-secondary hover:text-ink [--press-scale:0.98]"
-    >
-      <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${error ? 'bg-danger' : 'bg-success'}`} />
-      {error ? 'System not responding' : `Connected to ${data.database}, schema version ${data.schemaVersion}`}
-    </Link>
-  )
-}
 
 function CurrentSession({ id }) {
   const { data: session, error, reload } = useApi(useCallback(() => getSession(id), [id]))
@@ -254,7 +237,6 @@ function PersonalHome() {
 // Each role opens on what it needs to act on today.
 export default function DashboardPage() {
   const [today] = useState(() => formatLongDate(new Date()))
-  const isAdmin = useAuthStore((state) => hasAnyRole(state.user, ['ADMIN']))
   const isCoordinator = useAuthStore((state) => hasAnyRole(state.user, ['EXAM_COORDINATOR']))
   const isHod = useAuthStore((state) => hasAnyRole(state.user, ['HOD']))
 
@@ -262,19 +244,6 @@ export default function DashboardPage() {
     <>
       <PageHeader eyebrow={today} title="Dashboard" />
       {isCoordinator ? <CoordinatorHome /> : isHod ? <ReviewerHome /> : <PersonalHome />}
-      {isCoordinator && (
-        <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-2">
-          {isAdmin && <SystemLine />}
-          {isAdmin && (
-            <Link to="/audit" className="rounded-sm text-footnote text-ink-secondary underline decoration-line-strong underline-offset-2 hover:text-ink">
-              Audit log
-            </Link>
-          )}
-          <Link to="/comparison" className="rounded-sm text-footnote text-ink-secondary underline decoration-line-strong underline-offset-2 hover:text-ink">
-            DSATUR compared with first-fit
-          </Link>
-        </div>
-      )}
     </>
   )
 }

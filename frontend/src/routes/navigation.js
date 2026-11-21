@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, DoorOpen, FileText, GraduationCap, LayoutDashboard, UserRound, Users } from 'lucide-react'
+import { CalendarDays, ClipboardList, DoorOpen, FileText, GraduationCap, LayoutDashboard, ScrollText, UserRound, Users } from 'lucide-react'
 import { hasAnyRole } from '../utils/roles.js'
 
 const PLANNERS = ['ADMIN', 'EXAM_COORDINATOR', 'HOD']
@@ -15,10 +15,10 @@ export const navigation = [
   { label: 'Students', to: '/students', icon: UserRound, roles: PLANNERS },
   { label: 'Halls', to: '/halls', icon: DoorOpen, roles: PLANNERS },
   { label: 'Users', to: '/users', icon: Users, roles: ['ADMIN'] },
-  // Reached from a link on the dashboard, not from the menu.
+  { label: 'Audit log', to: '/audit', icon: ScrollText, roles: ['ADMIN'] },
+  // Not in the menu: Comparison opens from a session's "How it was built" tab, System only by its address.
   { label: 'Comparison', to: '/comparison', roles: PLANNERS, menu: false },
   { label: 'System', to: '/system', roles: ['ADMIN'], menu: false },
-  { label: 'Audit log', to: '/audit', roles: ['ADMIN'], menu: false },
   { label: 'Notifications', to: '/notifications', menu: false },
 ]
 

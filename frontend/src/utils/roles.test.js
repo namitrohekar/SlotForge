@@ -28,6 +28,8 @@ describe('roles', () => {
     expect(labels(as('FACULTY'))).toEqual(['Dashboard', 'Timetables', 'My duties'])
     expect(labels(as('EXAM_COORDINATOR'))).toEqual(['Dashboard', 'Timetables', 'Sessions', 'Academics', 'Students', 'Halls'])
     expect(labels(as('ADMIN'))).toContain('Users')
+    expect(labels(as('ADMIN'))).toContain('Audit log')
+    expect(labels(as('EXAM_COORDINATOR'))).not.toContain('Audit log')
   })
 
   it('keeps My duties away from approvers, who are never given a duty', () => {
