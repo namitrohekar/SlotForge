@@ -9,8 +9,18 @@ services:
     healthCheckPath: /api/auth/options
     envVars:
       # prod: secure cookies and the host's HTTPS. demo: anyone with the address can use the demo accounts.
+      # google: Google sign-in, limited to the allowed domains below.
       - key: SPRING_PROFILES_ACTIVE
-        value: prod,demo
+        value: prod,demo,google
+      - key: SLOTFORGE_GOOGLE_ALLOWED_DOMAINS
+        value: vjti.ac.in
+      # The site's own address; Google sends people back here after sign-in.
+      - key: SLOTFORGE_FRONTEND_ORIGIN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
       - key: SLOTFORGE_DB_URL
         sync: false
       - key: SLOTFORGE_DB_USERNAME

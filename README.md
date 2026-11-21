@@ -50,9 +50,10 @@ The app is deployed as a single Docker container on Render, which serves both th
 
 1. Create a PostgreSQL 18 project on Neon and run the schema and seed scripts on it.
 2. On Render, create a new Blueprint from this repository. It uses `render.yaml`.
-3. Enter the database URL, username and password when asked.
+3. Enter the database URL, username and password when asked, plus the site's own address and the Google client ID and secret.
+4. In Google Cloud, add `https://<site address>/login/oauth2/code/google` as a redirect URI of the OAuth client.
 
-The deployed site uses the `prod` and `demo` profiles, so anyone with the link can use the demo accounts. Keep only demo data in that database.
+The deployed site uses the `prod`, `demo` and `google` profiles, so anyone with the link can use the demo accounts. Keep only demo data in that database. Google sign-in works only for people already added on the Users page.
 
 The free Render instance sleeps after 15 minutes without visits, so the first load can take about a minute.
 
